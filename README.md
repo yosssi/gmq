@@ -1,4 +1,1 @@
-gmq
-===
-
-Pure Go MQTT Client
+# GMQ - Pure Go MQTT Client
