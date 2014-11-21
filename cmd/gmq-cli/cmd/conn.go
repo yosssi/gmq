@@ -39,5 +39,5 @@ func init() {
 
 // connect sends a connection request to the server.
 func conn(cli *client.Client, c *Cmd) error {
-	return nil
+	return cli.Conn(nil)
 }
