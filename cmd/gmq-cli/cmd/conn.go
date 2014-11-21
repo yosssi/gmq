@@ -5,18 +5,6 @@ import (
 	"github.com/yosssi/gmq/common"
 )
 
-// Defalut values of the flags
-const (
-	defConnHost         = "localhost"
-	defConnPort         = 1883
-	defConnCleanSession = true
-	defConnWill         = false
-	defConnWillQoS      = common.QoS0
-	defConnWillRetain   = false
-	defConnUsername     = ""
-	defConnPassword     = ""
-)
-
 // Conn is a command which sends a connection request to the server.
 var Conn = &Cmd{
 	Name:  "conn",
@@ -29,22 +17,24 @@ var (
 	connHost         string
 	connPort         uint
 	connCleanSession bool
-	connWill         bool
+	connWillTopic    string
+	connWillMessage  string
 	connWillQoS      uint
 	connWillRetain   bool
-	connUsername     string
+	connUserName     string
 	connPassword     string
 )
 
 func init() {
-	Conn.Flag.StringVar(&connHost, "h", defConnHost, "host name of the server to connect to")
-	Conn.Flag.UintVar(&connPort, "p", defConnPort, "port number of the server to connect to")
-	Conn.Flag.BoolVar(&connCleanSession, "c", defConnCleanSession, "enable crean session")
-	Conn.Flag.BoolVar(&connWill, "w", defConnWill, "enable Will")
-	Conn.Flag.UintVar(&connWillQoS, "wq", defConnWillQoS, "QoS levels to be used when publishing the Will Message")
-	Conn.Flag.BoolVar(&connWillRetain, "wr", defConnWillRetain, "enable Will Retain")
-	Conn.Flag.StringVar(&connUsername, "u", defConnUsername, "username")
-	Conn.Flag.StringVar(&connPassword, "P", defConnPassword, "password")
+	Conn.Flag.StringVar(&connHost, "h", client.DefaultHost, "host name of the server to connect to")
+	Conn.Flag.UintVar(&connPort, "p", uint(client.DefaultPort), "port number of the server to connect to")
+	Conn.Flag.BoolVar(&connCleanSession, "c", client.DefaultCleanSession, "Clean Session")
+	Conn.Flag.StringVar(&connWillTopic, "wc", "", "Will Topic")
+	Conn.Flag.StringVar(&connWillMessage, "wm", "", "Will Message")
+	Conn.Flag.UintVar(&connWillQoS, "wq", common.QoS0, "Will QoS")
+	Conn.Flag.BoolVar(&connWillRetain, "wr", false, "Will Retain")
+	Conn.Flag.StringVar(&connUserName, "u", "", "User Name")
+	Conn.Flag.StringVar(&connPassword, "P", "", "Password")
 }
 
 // connect sends a connection request to the server.
