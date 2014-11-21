@@ -6,8 +6,7 @@ var (
 	BoolPtrFalse = BoolPtr(false)
 )
 
-// BoolPtr converts the bool value specified as a parameter
-// into a bool pointer.
+// BoolPtr converts a bool value into a bool pointer.
 func BoolPtr(b bool) *bool {
 	return &b
 }

@@ -17,7 +17,10 @@ const header = "gmq-cli> "
 var (
 	exit            = os.Exit
 	stdin io.Reader = os.Stdin
+)
 
+// Command-line flags
+var (
 	v = flag.Bool("v", false, "Print the version and exit.")
 )
 
@@ -33,6 +36,7 @@ func main() {
 		return
 	}
 
+	// Read lines from the standard input.
 	scanner := bufio.NewScanner(stdin)
 
 	os.Stdout.WriteString(header)
