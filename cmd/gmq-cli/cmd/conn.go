@@ -1,8 +1,7 @@
 package cmd
 
 import (
-	"fmt"
-
+	"github.com/yosssi/gmq/client"
 	"github.com/yosssi/gmq/common"
 )
 
@@ -48,8 +47,7 @@ func init() {
 	Conn.Flag.StringVar(&connPassword, "P", defConnPassword, "password")
 }
 
-// conn sends a connection request to the server.
-func conn(c *Cmd) error {
-	fmt.Println(connHost, connPort, connCleanSession, connWill, connWillQoS, connWillRetain, connUsername, connPassword)
+// connect sends a connection request to the server.
+func conn(cli *client.Client, c *Cmd) error {
 	return nil
 }

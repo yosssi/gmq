@@ -48,6 +48,9 @@ func main() {
 		return
 	}
 
+	// Create an MQTT client.
+	cli := client.New()
+
 	// Read lines from the standard input.
 	scanner := bufio.NewScanner(stdin)
 
@@ -81,7 +84,7 @@ InputLoop:
 					continue InputLoop
 				}
 
-				c.Run(c)
+				c.Run(cli, c)
 
 				fmt.Println(cmdName + " executed!")
 

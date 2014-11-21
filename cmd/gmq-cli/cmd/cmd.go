@@ -1,6 +1,10 @@
 package cmd
 
-import "flag"
+import (
+	"flag"
+
+	"github.com/yosssi/gmq/client"
+)
 
 // Cmd represents a command of an MQTT client.
 type Cmd struct {
@@ -9,7 +13,7 @@ type Cmd struct {
 	// Usage is a usage of the command.
 	Usage string
 	// Run runs the command.
-	Run func(*Cmd) error
+	Run func(*client.Client, *Cmd) error
 	// Flag is a set of flags specific to this command.
 	Flag flag.FlagSet
 }

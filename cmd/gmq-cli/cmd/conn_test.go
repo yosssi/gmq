@@ -1,7 +1,11 @@
 package cmd
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/yosssi/gmq/client"
+)
 
 func Test_conn(t *testing.T) {
-	conn(Conn)
+	conn(client.New(), Conn)
 }
