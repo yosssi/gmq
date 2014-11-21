@@ -21,15 +21,6 @@ func TestMain_printVersion(t *testing.T) {
 
 	main()
 }
-func TestMain(t *testing.T) {
-	defer func(orig io.Reader) {
-		stdin = orig
-	}(stdin)
-
-	stdin = strings.NewReader("test")
-
-	main()
-}
 
 func TestMain_scannerErr(t *testing.T) {
 	defer func(orig io.Reader) {
@@ -39,4 +30,23 @@ func TestMain_scannerErr(t *testing.T) {
 	stdin = bytes.NewReader(make([]byte, bufio.MaxScanTokenSize))
 
 	main()
+}
+
+func TestMain(t *testing.T) {
+	defer func(orig io.Reader) {
+		stdin = orig
+	}(stdin)
+
+	testCases := []string{
+		" ",
+		"help",
+		"notExist",
+		"conn",
+		"conn -not-exist",
+	}
+
+	for _, tc := range testCases {
+		stdin = strings.NewReader(tc)
+		main()
+	}
 }
