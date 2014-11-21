@@ -8,5 +8,5 @@ type Options struct {
 	Port uint16
 	// CleanSession is a flag which corresponds to the CleanSession of the Connect Flags
 	// in the CONNECT Packet.
-	CleanSession *cleanSession
+	CleanSession *bool
 }
