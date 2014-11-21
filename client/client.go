@@ -4,6 +4,6 @@ package client
 type Client struct{}
 
 // New creates and returns an MQTT client.
-func New(opts *Options) *Client {
+func New() *Client {
 	return &Client{}
 }
