@@ -43,6 +43,7 @@ func TestMain(t *testing.T) {
 		"notExist",
 		"conn",
 		"conn -not-exist",
+		"conn -h test.mosquitto.org",
 	}
 
 	for _, tc := range testCases {

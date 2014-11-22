@@ -23,6 +23,7 @@ var (
 	connWillRetain   bool
 	connUserName     string
 	connPassword     string
+	connKeepAlive    uint
 )
 
 func init() {
@@ -35,9 +36,21 @@ func init() {
 	Conn.Flag.BoolVar(&connWillRetain, "wr", false, "Will Retain")
 	Conn.Flag.StringVar(&connUserName, "u", "", "User Name")
 	Conn.Flag.StringVar(&connPassword, "P", "", "Password")
+	Conn.Flag.UintVar(&connKeepAlive, "k", uint(client.DefaultKeepAlive), "Keep Alive in seconds for this client.")
 }
 
 // connect sends a connection request to the server.
 func conn(cli *client.Client, c *Cmd) error {
-	return cli.Conn(nil)
+	return cli.Conn(&client.ConnOpts{
+		Host:         connHost,
+		Port:         &connPort,
+		CleanSession: &connCleanSession,
+		WillTopic:    connWillTopic,
+		WillMessage:  connWillMessage,
+		WillQoS:      connWillQoS,
+		WillRetain:   connWillRetain,
+		UserName:     connUserName,
+		Password:     connPassword,
+		KeepAlive:    connKeepAlive,
+	})
 }

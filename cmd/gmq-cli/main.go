@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"strings"
 
@@ -84,9 +85,10 @@ InputLoop:
 					continue InputLoop
 				}
 
-				c.Run(cli, c)
-
-				fmt.Println(cmdName + " executed!")
+				if err := c.Run(cli, c); err != nil {
+					log.Println(err)
+					continue InputLoop
+				}
 
 				continue InputLoop
 			}

@@ -7,8 +7,9 @@ const (
 
 // Defalut value
 var (
-	DefaultPort         uint16 = 1883
-	DefaultCleanSession        = true
+	DefaultPort         uint = 1883
+	DefaultCleanSession      = true
+	DefaultKeepAlive    uint = 60
 )
 
 // ConnOpts is options for the Client.Conn method.
@@ -16,7 +17,7 @@ type ConnOpts struct {
 	// Host is the host name of the server to connect to.
 	Host string
 	// Port is the port number of the server to connect to.
-	Port *uint16
+	Port *uint
 	// CleanSession is the Clean Session of the connect flags.
 	CleanSession *bool
 	// WillTopic is the Will Topic of the payload.
@@ -24,7 +25,7 @@ type ConnOpts struct {
 	// WillMessage is the Will Message of the payload.
 	WillMessage string
 	// WillQoS is the Will QoS of the connect flags.
-	WillQoS uint8
+	WillQoS uint
 	// WillRetain is the Will Retain of the connect flags.
 	WillRetain bool
 	// UserName is the user name used by the server for authentication and authorization.
@@ -32,7 +33,7 @@ type ConnOpts struct {
 	// Password is the password used by the server for authentication and authorization.
 	Password string
 	// KeepAlive is the Keep Alive in the variable header.
-	KeepAlive uint16
+	KeepAlive uint
 }
 
 // Init initialize the ConnOpts.
