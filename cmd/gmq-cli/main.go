@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"strings"
 
@@ -56,7 +55,7 @@ func main() {
 	scanner := bufio.NewScanner(stdin)
 
 InputLoop:
-	for writeHeader(); scanner.Scan(); writeHeader() {
+	for printHeader(); scanner.Scan(); printHeader() {
 		// Get the input data from the standard input.
 		s := strings.TrimSpace(scanner.Text())
 
@@ -86,7 +85,7 @@ InputLoop:
 				}
 
 				if err := c.Run(cli, c); err != nil {
-					log.Println(err)
+					printError(err)
 					continue InputLoop
 				}
 
@@ -98,10 +97,14 @@ InputLoop:
 	}
 
 	if err := scanner.Err(); err != nil {
-		fmt.Fprintln(os.Stderr, "reading standard input:", err)
+		printError(err)
 	}
 }
 
-func writeHeader() {
+func printHeader() {
 	os.Stdout.WriteString(header)
+}
+
+func printError(err error) {
+	fmt.Fprintf(os.Stderr, "%s.\n", err)
 }

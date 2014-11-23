@@ -1,20 +1,33 @@
 package client
 
 import (
+	"errors"
 	"log"
 	"net"
 	"strconv"
+	"sync"
 )
+
+// Error values
+var ErrAlreadyConnected = errors.New("the client has already connected to the server")
 
 // Client represents an MQTT client.
 type Client struct {
+	sync.RWMutex
 	// conns is network connections to the server.
-	conns []net.Conn
+	conn net.Conn
 }
 
 // Conn tries to establish a network connection to the server and
 // sends a CONNECT Package to the server.
 func (cli *Client) Conn(opts *ConnOpts) error {
+	cli.Lock()
+	defer cli.Unlock()
+
+	if cli.conn != nil {
+		return ErrAlreadyConnected
+	}
+
 	if opts == nil {
 		opts = &ConnOpts{}
 	}
@@ -32,7 +45,7 @@ func (cli *Client) Conn(opts *ConnOpts) error {
 
 	log.Printf("Connected successfully to %s", address)
 
-	cli.conns = append(cli.conns, conn)
+	cli.conn = conn
 
 	return nil
 }
