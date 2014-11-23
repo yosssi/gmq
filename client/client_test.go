@@ -3,8 +3,8 @@ package client
 import "testing"
 
 func TestClient_Conn_optsNill(t *testing.T) {
-	if err, want := New().Conn(nil), "dial tcp 127.0.0.1:1883: connection refused"; err == nil || err.Error() != want {
-		t.Error("err.Error() => %q, want => %q", err, want)
+	if err := New().Conn(nil); err == nil {
+		t.Error("err => nil, want => %q", err)
 	}
 }
 
