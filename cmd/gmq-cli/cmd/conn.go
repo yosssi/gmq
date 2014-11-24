@@ -41,7 +41,7 @@ func init() {
 
 // connect sends a connection request to the server.
 func conn(cli *client.Client, c *Cmd) error {
-	return cli.Conn(&client.ConnOpts{
+	return cli.Connect(&client.ConnectOpts{
 		Host:         connHost,
 		Port:         &connPort,
 		CleanSession: &connCleanSession,

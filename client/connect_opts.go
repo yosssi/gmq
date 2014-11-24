@@ -12,8 +12,8 @@ var (
 	DefaultKeepAlive    uint = 60
 )
 
-// ConnOpts is options for the Client.Conn method.
-type ConnOpts struct {
+// ConnectOpts is options for the Client.Conn method.
+type ConnectOpts struct {
 	// Host is the host name of the server to connect to.
 	Host string
 	// Port is the port number of the server to connect to.
@@ -36,8 +36,8 @@ type ConnOpts struct {
 	KeepAlive uint
 }
 
-// Init initialize the ConnOpts.
-func (opts *ConnOpts) Init() {
+// Init initialize the ConnectOpts.
+func (opts *ConnectOpts) Init() {
 	if opts.Host == "" {
 		opts.Host = DefaultHost
 	}

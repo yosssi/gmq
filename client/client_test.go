@@ -2,24 +2,24 @@ package client
 
 import "testing"
 
-func TestClient_Conn_optsNill(t *testing.T) {
-	if err := New().Conn(nil); err == nil {
+func TestClient_Connect_optsNill(t *testing.T) {
+	if err := New().Connect(nil); err == nil {
 		t.Errorf("err => nil, want => %q", err)
 	}
 }
 
-func TestClient_Conn_errAlreadyConnected(t *testing.T) {
-	opts := &ConnOpts{
+func TestClient_Connect_errAlreadyConnected(t *testing.T) {
+	opts := &ConnectOpts{
 		Host: "test.mosquitto.org",
 	}
 
 	cli := New()
 
-	if err := cli.Conn(opts); err != nil {
+	if err := cli.Connect(opts); err != nil {
 		t.Errorf("err => %q, want => nil", err)
 	}
 
-	if err := cli.Conn(opts); err != ErrAlreadyConnected {
+	if err := cli.Connect(opts); err != ErrAlreadyConnected {
 		if err == nil {
 			t.Errorf("err => nil, want => %q", ErrAlreadyConnected)
 		} else {
@@ -28,12 +28,12 @@ func TestClient_Conn_errAlreadyConnected(t *testing.T) {
 	}
 }
 
-func TestClient_Conn(t *testing.T) {
-	opts := &ConnOpts{
+func TestClient_Connect(t *testing.T) {
+	opts := &ConnectOpts{
 		Host: "test.mosquitto.org",
 	}
 
-	if err := New().Conn(opts); err != nil {
+	if err := New().Connect(opts); err != nil {
 		t.Errorf("err => %q, want => nil", err)
 	}
 }

@@ -19,9 +19,9 @@ type Client struct {
 	networkConnection *common.NetworkConnection
 }
 
-// Conn tries to establish a network connection to the Server and
+// Connect tries to establish a network connection to the Server and
 // sends a CONNECT Package to the Server.
-func (cli *Client) Conn(opts *ConnOpts) error {
+func (cli *Client) Connect(opts *ConnectOpts) error {
 	// Lock for the update of the Client's field.
 	cli.mu.Lock()
 	defer cli.mu.Unlock()
@@ -33,7 +33,7 @@ func (cli *Client) Conn(opts *ConnOpts) error {
 
 	// Initialize the options.
 	if opts == nil {
-		opts = &ConnOpts{}
+		opts = &ConnectOpts{}
 	}
 	opts.Init()
 
