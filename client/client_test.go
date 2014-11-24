@@ -4,7 +4,7 @@ import "testing"
 
 func TestClient_Conn_optsNill(t *testing.T) {
 	if err := New().Conn(nil); err == nil {
-		t.Error("err => nil, want => %q", err)
+		t.Errorf("err => nil, want => %q", err)
 	}
 }
 
@@ -16,14 +16,14 @@ func TestClient_Conn_errAlreadyConnected(t *testing.T) {
 	cli := New()
 
 	if err := cli.Conn(opts); err != nil {
-		t.Error("err => %q, want => nil", err)
+		t.Errorf("err => %q, want => nil", err)
 	}
 
 	if err := cli.Conn(opts); err != ErrAlreadyConnected {
 		if err == nil {
-			t.Error("err => nil, want => %q", ErrAlreadyConnected)
+			t.Errorf("err => nil, want => %q", ErrAlreadyConnected)
 		} else {
-			t.Error("err => %q, want => %q", err, ErrAlreadyConnected)
+			t.Errorf("err => %q, want => %q", err, ErrAlreadyConnected)
 		}
 	}
 }
@@ -34,7 +34,7 @@ func TestClient_Conn(t *testing.T) {
 	}
 
 	if err := New().Conn(opts); err != nil {
-		t.Error("err => %q, want => nil", err)
+		t.Errorf("err => %q, want => nil", err)
 	}
 }
 

@@ -2,55 +2,52 @@ package client
 
 import (
 	"errors"
-	"log"
-	"net"
 	"strconv"
 	"sync"
+
+	"github.com/yosssi/gmq/common"
 )
 
 // Error values
-var ErrAlreadyConnected = errors.New("the client has already connected to the server")
+var ErrAlreadyConnected = errors.New("the Client has already connected to the Server")
 
-// Client represents an MQTT client.
+// Client represents a Client.
 type Client struct {
-	sync.RWMutex
-	// conns is network connections to the server.
-	conn net.Conn
+	// mu is a reader/writer mutual exclusion lock for the Client.
+	mu sync.RWMutex
+	// networkConnection is a Network Connection.
+	networkConnection *common.NetworkConnection
 }
 
-// Conn tries to establish a network connection to the server and
-// sends a CONNECT Package to the server.
+// Conn tries to establish a network connection to the Server and
+// sends a CONNECT Package to the Server.
 func (cli *Client) Conn(opts *ConnOpts) error {
-	cli.Lock()
-	defer cli.Unlock()
+	// Lock for the update of the Client's field.
+	cli.mu.Lock()
+	defer cli.mu.Unlock()
 
-	if cli.conn != nil {
+	// Return an error if the Client has already connected to the Server.
+	if cli.networkConnection != nil {
 		return ErrAlreadyConnected
 	}
 
+	// Initialize the options.
 	if opts == nil {
 		opts = &ConnOpts{}
 	}
-
 	opts.Init()
 
-	address := opts.Host + ":" + strconv.Itoa(int(*opts.Port))
-
-	log.Printf("Connecting to %s", address)
-
-	conn, err := net.Dial("tcp", address)
+	// Connect to the Server and create a Network Connection.
+	networkConnection, err := common.NewNetworkConnection("tcp", opts.Host+":"+strconv.Itoa(int(*opts.Port)))
 	if err != nil {
 		return err
 	}
-
-	log.Printf("Connected successfully to %s", address)
-
-	cli.conn = conn
+	cli.networkConnection = networkConnection
 
 	return nil
 }
 
-// New creates and returns an MQTT client.
+// New creates and returns a Client.
 func New() *Client {
 	return &Client{}
 }
