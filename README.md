@@ -5,3 +5,7 @@
 [![Coverage Status](https://img.shields.io/coveralls/yosssi/gmq.svg)](https://coveralls.io/r/yosssi/gmq?branch=master)
 [![GoDoc](https://godoc.org/github.com/yosssi/gmq?status.svg)](https://godoc.org/github.com/yosssi/gmq)
 [![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/yosssi/gmq?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+
+## Overview
+
+GMQ is a pure Go MQTT client. This library is compatible with [MQTT Version 3.1.1](http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html). This library is work in progress.
