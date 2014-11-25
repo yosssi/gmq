@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/yosssi/gmq/common"
+	"github.com/yosssi/gmq/common/packet"
 )
 
 // Error values
@@ -20,7 +21,7 @@ type Client struct {
 
 // Connect tries to establish a network connection to the Server and
 // sends a CONNECT Package to the Server.
-func (cli *Client) Connect(address string, opts *common.OptionsPacketCONNECT) error {
+func (cli *Client) Connect(address string, opts *packet.CONNECTOptions) error {
 	// Lock for the update of the Client's fields.
 	cli.mu.Lock()
 	defer cli.mu.Unlock()

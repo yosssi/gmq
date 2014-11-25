@@ -1,4 +1,4 @@
-package common
+package packet
 
 // Defalut values
 var (
@@ -6,8 +6,8 @@ var (
 	DefaultKeepAlive    uint = 60
 )
 
-// OptionsPacketCONNECT is options for creating a CONNECT Packet.
-type OptionsPacketCONNECT struct {
+// CONNECTOptions represents options for a CONNECT Packet.
+type CONNECTOptions struct {
 	// CleanSession is the Clean Session of the connect flags.
 	CleanSession *bool
 	// WillTopic is the Will Topic of the payload.
@@ -26,8 +26,8 @@ type OptionsPacketCONNECT struct {
 	KeepAlive *uint
 }
 
-// Init initializes the OptionsPacketCONNECT.
-func (opts *OptionsPacketCONNECT) Init() {
+// Init initializes the CONNECTOptions.
+func (opts *CONNECTOptions) Init() {
 	if opts.CleanSession == nil {
 		opts.CleanSession = &DefaultCleanSession
 	}
