@@ -21,7 +21,7 @@ type Client struct {
 // Connect tries to establish a network connection to the Server and
 // sends a CONNECT Package to the Server.
 func (cli *Client) Connect(address string, opts *common.OptionsPacketCONNECT) error {
-	// Lock for the update of the Client's field.
+	// Lock for the update of the Client's fields.
 	cli.mu.Lock()
 	defer cli.mu.Unlock()
 
