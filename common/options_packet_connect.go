@@ -26,7 +26,7 @@ type OptionsPacketCONNECT struct {
 	KeepAlive *uint
 }
 
-// Init initialize the ConnectOpts.
+// Init initializes the OptionsPacketCONNECT.
 func (opts *OptionsPacketCONNECT) Init() {
 	if opts.CleanSession == nil {
 		opts.CleanSession = &DefaultCleanSession
