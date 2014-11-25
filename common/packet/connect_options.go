@@ -8,6 +8,8 @@ var (
 
 // CONNECTOptions represents options for a CONNECT Packet.
 type CONNECTOptions struct {
+	// clientID is the Client Identifier (ClientId) identifies the Client to the Server.
+	ClientID string
 	// CleanSession is the Clean Session of the connect flags.
 	CleanSession *bool
 	// WillTopic is the Will Topic of the payload.
