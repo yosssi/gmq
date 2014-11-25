@@ -1,23 +1,13 @@
-package client
-
-// Defalut values
-const (
-	DefaultHost = "localhost"
-)
+package common
 
 // Defalut value
 var (
-	DefaultPort         uint = 1883
 	DefaultCleanSession      = true
 	DefaultKeepAlive    uint = 60
 )
 
-// ConnectOpts is options for the Client.Conn method.
-type ConnectOpts struct {
-	// Host is the host name of the server to connect to.
-	Host string
-	// Port is the port number of the server to connect to.
-	Port *uint
+// OptionsPacketCONNECT is options for creating a CONNECT Packet.
+type OptionsPacketCONNECT struct {
 	// CleanSession is the Clean Session of the connect flags.
 	CleanSession *bool
 	// WillTopic is the Will Topic of the payload.
@@ -33,20 +23,16 @@ type ConnectOpts struct {
 	// Password is the password used by the server for authentication and authorization.
 	Password string
 	// KeepAlive is the Keep Alive in the variable header.
-	KeepAlive uint
+	KeepAlive *uint
 }
 
 // Init initialize the ConnectOpts.
-func (opts *ConnectOpts) Init() {
-	if opts.Host == "" {
-		opts.Host = DefaultHost
-	}
-
-	if opts.Port == nil {
-		opts.Port = &DefaultPort
-	}
-
+func (opts *OptionsPacketCONNECT) Init() {
 	if opts.CleanSession == nil {
 		opts.CleanSession = &DefaultCleanSession
+	}
+
+	if opts.KeepAlive == nil {
+		opts.KeepAlive = &DefaultKeepAlive
 	}
 }

@@ -8,6 +8,8 @@ import (
 	"testing"
 )
 
+const testHost = "iot.eclipse.org"
+
 func init() {
 	exit = func(_ int) {}
 }
@@ -43,7 +45,7 @@ func TestMain(t *testing.T) {
 		"notExist",
 		"conn",
 		"conn -not-exist",
-		"conn -h test.mosquitto.org",
+		"conn -h " + testHost,
 	}
 
 	for _, tc := range testCases {

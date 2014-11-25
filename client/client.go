@@ -2,7 +2,6 @@ package client
 
 import (
 	"errors"
-	"strconv"
 	"sync"
 
 	"github.com/yosssi/gmq/common"
@@ -21,7 +20,7 @@ type Client struct {
 
 // Connect tries to establish a network connection to the Server and
 // sends a CONNECT Package to the Server.
-func (cli *Client) Connect(opts *ConnectOpts) error {
+func (cli *Client) Connect(address string, opts *common.OptionsPacketCONNECT) error {
 	// Lock for the update of the Client's field.
 	cli.mu.Lock()
 	defer cli.mu.Unlock()
@@ -31,14 +30,8 @@ func (cli *Client) Connect(opts *ConnectOpts) error {
 		return ErrAlreadyConnected
 	}
 
-	// Initialize the options.
-	if opts == nil {
-		opts = &ConnectOpts{}
-	}
-	opts.Init()
-
 	// Connect to the Server and create a Network Connection.
-	networkConnection, err := common.NewNetworkConnection("tcp", opts.Host+":"+strconv.Itoa(int(*opts.Port)))
+	networkConnection, err := common.NewNetworkConnection("tcp", address)
 	if err != nil {
 		return err
 	}
