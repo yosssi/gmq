@@ -15,7 +15,7 @@ type Client struct {
 	// mu is a reader/writer mutual exclusion lock for the Client.
 	mu sync.RWMutex
 	// networkConnection is a Network Connection.
-	networkConnection *common.NetworkConnection
+	conn *common.Connection
 }
 
 // Connect tries to establish a network connection to the Server and
@@ -26,16 +26,16 @@ func (cli *Client) Connect(address string, opts *common.OptionsPacketCONNECT) er
 	defer cli.mu.Unlock()
 
 	// Return an error if the Client has already connected to the Server.
-	if cli.networkConnection != nil {
+	if cli.conn != nil {
 		return ErrAlreadyConnected
 	}
 
 	// Connect to the Server and create a Network Connection.
-	networkConnection, err := common.NewNetworkConnection("tcp", address)
+	conn, err := common.NewConnection("tcp", address)
 	if err != nil {
 		return err
 	}
-	cli.networkConnection = networkConnection
+	cli.conn = conn
 
 	return nil
 }
