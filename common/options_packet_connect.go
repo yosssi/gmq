@@ -1,6 +1,6 @@
 package common
 
-// Defalut value
+// Defalut values
 var (
 	DefaultCleanSession      = true
 	DefaultKeepAlive    uint = 60
