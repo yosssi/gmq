@@ -45,6 +45,7 @@ func TestMain(t *testing.T) {
 		"notExist",
 		"conn",
 		"conn -not-exist",
+		"conn -h not-exist",
 		"conn -h " + testHost,
 	}
 
