@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"os"
 	"strconv"
 
 	"github.com/yosssi/gmq/client"
@@ -25,6 +26,7 @@ const (
 var (
 	connHost         string
 	connPort         uint
+	connClientID     string
 	connCleanSession bool
 	connWillTopic    string
 	connWillMessage  string
@@ -36,8 +38,11 @@ var (
 )
 
 func init() {
+	hostname, _ := os.Hostname()
+
 	Conn.Flag.StringVar(&connHost, "h", defaultHost, "host name of the server to connect to")
 	Conn.Flag.UintVar(&connPort, "p", uint(defaultPort), "port number of the server to connect to")
+	Conn.Flag.StringVar(&connClientID, "i", hostname, "id to use for this client")
 	Conn.Flag.BoolVar(&connCleanSession, "c", packet.DefaultCleanSession, "Clean Session")
 	Conn.Flag.StringVar(&connWillTopic, "wc", "", "Will Topic")
 	Conn.Flag.StringVar(&connWillMessage, "wm", "", "Will Message")
@@ -53,6 +58,7 @@ func conn(cli *client.Client, c *Cmd) error {
 	return cli.Connect(
 		connHost+":"+strconv.Itoa(int(connPort)),
 		&packet.CONNECTOptions{
+			ClientID:     connClientID,
 			CleanSession: &connCleanSession,
 			WillTopic:    connWillTopic,
 			WillMessage:  connWillMessage,
