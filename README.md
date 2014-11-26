@@ -1,4 +1,4 @@
-# GMQ - Pure Go MQTT Client
+# GMQ - Pure Go MQTT Client (WIP)
 
 [![wercker status](https://app.wercker.com/status/3e5533f6f9aa61384eb2dd2d8f102cfd/m "wercker status")](https://app.wercker.com/project/bykey/3e5533f6f9aa61384eb2dd2d8f102cfd)
 [![Build status](https://ci.appveyor.com/api/projects/status/7gigy6i4tknxh9x3?svg=true)](https://ci.appveyor.com/project/yosssi/gmq)
@@ -8,4 +8,4 @@
 
 ## Overview
 
-GMQ is a pure Go MQTT client. This library is compatible with [MQTT Version 3.1.1](http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html). This library is a work in progress.
+GMQ is a pure Go MQTT client. This library is compatible with [MQTT Version 3.1.1](http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html).
