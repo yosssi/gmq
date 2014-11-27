@@ -34,7 +34,7 @@ func Test_connect_WriteTo_errWriteFixedHeader(t *testing.T) {
 
 func Test_connect_WriteTo_errWriteVariableHeader(t *testing.T) {
 	p := NewCONNECT(nil)
-	p.(*connect).fixedHeader = nil
+	p.(*CONNECT).FixedHeader = nil
 
 	if _, err := p.WriteTo(&errWriter{}); err != errTest {
 		if err == nil {
@@ -47,8 +47,8 @@ func Test_connect_WriteTo_errWriteVariableHeader(t *testing.T) {
 
 func Test_connect_WriteTo_errWritePayload(t *testing.T) {
 	p := NewCONNECT(nil)
-	p.(*connect).fixedHeader = nil
-	p.(*connect).variableHeader = nil
+	p.(*CONNECT).FixedHeader = nil
+	p.(*CONNECT).VariableHeader = nil
 
 	if _, err := p.WriteTo(&errWriter{}); err != errTest {
 		if err == nil {
@@ -69,30 +69,30 @@ func Test_connect_WriteTo(t *testing.T) {
 
 func Test_connect_setFixedHeader_0xFF000000(t *testing.T) {
 	p := NewCONNECT(nil)
-	p.(*connect).payload = make([]byte, 10000000)
+	p.(*CONNECT).Payload = make([]byte, 10000000)
 
-	p.(*connect).setFixedHeader()
+	p.(*CONNECT).setFixedHeader()
 }
 
 func Test_connect_setFixedHeader_0x00FF0000(t *testing.T) {
 	p := NewCONNECT(nil)
-	p.(*connect).payload = make([]byte, 100000)
+	p.(*CONNECT).Payload = make([]byte, 100000)
 
-	p.(*connect).setFixedHeader()
+	p.(*CONNECT).setFixedHeader()
 }
 
 func Test_connect_setFixedHeader_0x0000FF00(t *testing.T) {
 	p := NewCONNECT(nil)
-	p.(*connect).payload = make([]byte, 1000)
+	p.(*CONNECT).Payload = make([]byte, 1000)
 
-	p.(*connect).setFixedHeader()
+	p.(*CONNECT).setFixedHeader()
 }
 
 func Test_connect_setFixedHeader_0x000000FF(t *testing.T) {
 	p := NewCONNECT(nil)
-	p.(*connect).payload = make([]byte, 1)
+	p.(*CONNECT).Payload = make([]byte, 1)
 
-	p.(*connect).setFixedHeader()
+	p.(*CONNECT).setFixedHeader()
 }
 
 func Test_connect_setPayload(t *testing.T) {
@@ -103,7 +103,7 @@ func Test_connect_setPayload(t *testing.T) {
 		Password:    "password",
 	})
 
-	p.(*connect).setPayload()
+	p.(*CONNECT).setPayload()
 }
 
 func Test_connect_connectFlags(t *testing.T) {
@@ -115,7 +115,7 @@ func Test_connect_connectFlags(t *testing.T) {
 		Password:    "password",
 	})
 
-	p.(*connect).connectFlags()
+	p.(*CONNECT).connectFlags()
 }
 
 func TestNewCONNECT(t *testing.T) {

@@ -2,11 +2,15 @@ package client
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"testing"
 	"time"
+
+	"github.com/yosssi/gmq/common/packet"
 )
 
 const testAddress = "iot.eclipse.org:1883"
@@ -119,6 +123,65 @@ func TestClient_receive_err(t *testing.T) {
 			t.Errorf("err => %q, want => %q", err, errTest)
 		}
 	}
+}
+
+func TestClient_receive_errInvalidHeader(t *testing.T) {
+	cli := New()
+
+	b := make([]byte, 268435457)
+	b[0] = 32
+	b[1] = 128
+	b[2] = 0xF0
+	b[3] = 0xF0
+	b[4] = 0xF0
+
+	r := bufio.NewReader(bytes.NewReader(b))
+
+	if err := cli.receive(r); err != packet.ErrInvalidCONNACKVariableHeaderLen {
+		if err == nil {
+			t.Errorf("err => nil, want => %q", packet.ErrInvalidCONNACKVariableHeaderLen)
+		} else {
+			t.Errorf("err => %q, want => %q", err, packet.ErrInvalidCONNACKVariableHeaderLen)
+		}
+	}
+}
+
+func TestClient_receive_errReadRemaining(t *testing.T) {
+	cli := New()
+
+	b := make([]byte, 5)
+	b[0] = 32
+	b[1] = 128
+	b[2] = 0xF0
+	b[3] = 0xF0
+	b[4] = 0xF0
+
+	r := bufio.NewReader(bytes.NewReader(b))
+
+	if err := cli.receive(r); err != io.EOF {
+		if err == nil {
+			t.Errorf("err => nil, want => %q", io.EOF)
+		} else {
+			t.Errorf("err => %q, want => %q", err, io.EOF)
+		}
+	}
+}
+
+func TestClient_receive_errReadFull(t *testing.T) {
+	cli := New()
+
+	b := make([]byte, 6)
+	b[0] = 32
+	b[1] = 128
+	b[2] = 0xF0
+	b[3] = 0xF0
+	b[4] = 0
+	b[5] = 0xF0
+
+	r := bufio.NewReader(bytes.NewReader(b))
+
+	err := cli.receive(r)
+	fmt.Println(err)
 }
 
 func TestNew(t *testing.T) {

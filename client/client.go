@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io"
 	"sync"
 
 	"github.com/yosssi/gmq/common"
@@ -63,6 +64,8 @@ func (cli *Client) Connect(address string, opts *packet.CONNECTOptions) error {
 		// Send MQTT Control Packets.
 		for p := range cli.sendc {
 			if err := cli.send(w, p); err != nil {
+				// Reset the buffered writer.
+				w.Reset(cli.conn)
 				cli.Errc <- err
 				continue
 			}
@@ -77,6 +80,8 @@ func (cli *Client) Connect(address string, opts *packet.CONNECTOptions) error {
 		// Receive MQTT Control Packets from the Server.
 		for {
 			if err := cli.receive(r); err != nil {
+				// Reset the buffered reader.
+				r.Reset(cli.conn)
 				cli.Errc <- err
 				continue
 			}
@@ -100,12 +105,56 @@ func (cli *Client) send(w *bufio.Writer, p packet.Packet) error {
 
 // receive receives MQTT Control Packets from the Server
 func (cli *Client) receive(r *bufio.Reader) error {
+	// Get the first byte of the Packet.
 	b, err := r.ReadByte()
 	if err != nil {
 		return err
 	}
 
-	fmt.Println(b)
+	// Extract the MQTT Control Packet Type from the first byte.
+	packetType := b >> 4
+
+	// Create the Fixed header.
+	fixedHeader := []byte{b}
+
+	// Get and decode the Remaining Length.
+	var mp uint32 = 1 // multiplier
+	var rl uint32     // the Remaining Length
+	for {
+		b, err = r.ReadByte()
+		if err != nil {
+			return err
+		}
+
+		fixedHeader = append(fixedHeader, b)
+
+		rl += uint32(b&127) * mp
+
+		if b&128 == 0 {
+			break
+		}
+
+		mp *= 128
+	}
+
+	// Create the Remaining (the Variable header and the Payload).
+	remaining := make([]byte, rl)
+
+	if rl > 0 {
+		if _, err = io.ReadFull(r, remaining); err != nil {
+			return err
+		}
+	}
+
+	switch packetType {
+	case packet.TypeCONNACK:
+		p, err := packet.NewCONNACKFromBytes(fixedHeader, remaining)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("%+v", p)
+	}
 
 	return nil
 }
