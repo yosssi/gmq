@@ -1,7 +1,5 @@
 package packet
 
-import "io"
-
 // Length of the Variable header of the CONNECT Packet.
 const lenCONNECTVariableHeader = 10
 
@@ -26,34 +24,6 @@ type CONNECT struct {
 	Password string
 	// keepAlive is the Keep Alive in the variable header.
 	KeepAlive uint
-}
-
-// WriteTo writes the Packet data to the writer.
-func (p *CONNECT) WriteTo(w io.Writer) (int64, error) {
-	var written int
-
-	// Write the Fixed header.
-	n, err := w.Write(p.FixedHeader)
-	if err != nil {
-		return int64(written), err
-	}
-	written += n
-
-	// Write the Variable header.
-	n, err = w.Write(p.VariableHeader)
-	if err != nil {
-		return int64(written), err
-	}
-	written += n
-
-	// Write the Payload.
-	n, err = w.Write(p.Payload)
-	if err != nil {
-		return int64(written), err
-	}
-	written += n
-
-	return int64(written), nil
 }
 
 // setFixedHeader sets the Fixed header to the Packet.
