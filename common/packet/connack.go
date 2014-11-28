@@ -2,11 +2,21 @@ package packet
 
 import "errors"
 
+// Length of the Fixed header of the CONNACK Packet.
+const lenCONNACKFixedHeader = 2
+
 // Length of the Variable header of the CONNACK Packet.
 const lenCONNACKVariableHeader = 2
 
+// First byte of the Fixed header of the CONNACK Packet.
+const firstByteCONNACKFixedHeader = 0x20
+
 // Error values
-var ErrInvalidCONNACKVariableHeaderLen = errors.New("the length of the Variable header of the CONNACK Packet is invalid")
+var (
+	ErrInvalidCONNACKFixedHeaderLen       = errors.New("the length of the Fixed header of the CONNACK Packet is invalid")
+	ErrInvalidCONNACKVariableHeaderLen    = errors.New("the length of the Variable header of the CONNACK Packet is invalid")
+	ErrInvalidfirstByteCONNACKFixedHeader = errors.New("the first byte of the Fixed header of the CONNACK Packet is invalid")
+)
 
 // CONNACK represents the CONNACK Packet.
 type CONNACK struct {
@@ -20,8 +30,18 @@ type CONNACK struct {
 
 // NewCONNACKFromBytes creates the CONNACK Packet from the byte data and returns it.
 func NewCONNACKFromBytes(fixedHeader, variableHeader []byte) (*CONNACK, error) {
+	// Check the length of the Fixed header of the CONNACK Packet.
+	if len(fixedHeader) != lenCONNACKFixedHeader {
+		return nil, ErrInvalidCONNACKFixedHeaderLen
+	}
+
 	// Check the length of the Variable header of the CONNACK Packet.
 	if len(variableHeader) != lenCONNACKVariableHeader {
+		return nil, ErrInvalidCONNACKVariableHeaderLen
+	}
+
+	// Check the first byte of the Fixed header of the CONNACK Packet.
+	if fixedHeader[0] != firstByteCONNACKFixedHeader {
 		return nil, ErrInvalidCONNACKVariableHeaderLen
 	}
 

@@ -3,7 +3,7 @@ package packet
 import "testing"
 
 func TestNewCONNACKFromBytes_errInvalidCONNACKVariableHeaderLen(t *testing.T) {
-	if _, err := NewCONNACKFromBytes(nil, nil); err != ErrInvalidCONNACKVariableHeaderLen {
+	if _, err := NewCONNACKFromBytes([]byte{0x20, 0x02}, nil); err != ErrInvalidCONNACKVariableHeaderLen {
 		if err == nil {
 			t.Errorf("err => nil, want => %q", ErrInvalidCONNACKVariableHeaderLen)
 		} else {
@@ -13,7 +13,7 @@ func TestNewCONNACKFromBytes_errInvalidCONNACKVariableHeaderLen(t *testing.T) {
 }
 
 func TestNewCONNACKFromBytes(t *testing.T) {
-	if _, err := NewCONNACKFromBytes(nil, []byte{0, 0}); err != nil {
+	if _, err := NewCONNACKFromBytes([]byte{0x20, 0x02}, []byte{0x00, 0x00}); err != nil {
 		t.Errorf("err => %q, want => nil", err)
 	}
 }
