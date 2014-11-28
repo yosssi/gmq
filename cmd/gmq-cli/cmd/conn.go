@@ -56,7 +56,11 @@ func init() {
 // connect sends a connection request to the server.
 func conn(cli *client.Client, c *Cmd) error {
 	return cli.Connect(
-		connHost+":"+strconv.Itoa(int(connPort)),
+		&client.ConnectOptions{
+			Network:        client.DefaultNetwork,
+			Address:        connHost + ":" + strconv.Itoa(int(connPort)),
+			CONNACKTimeout: client.DefaultCONNACKTimeout,
+		},
 		&packet.CONNECTOptions{
 			ClientID:     connClientID,
 			CleanSession: &connCleanSession,
