@@ -1,7 +1,9 @@
 package client
 
 import (
+	"bufio"
 	"errors"
+	"fmt"
 	"io"
 	"sync"
 	"time"
@@ -15,6 +17,9 @@ const (
 	defaultErrcBufferSize  = 1024
 	defaultSendcBufferSize = 1024
 )
+
+// Error string
+const strErrHandlingErr = "error %q occurred while handing the error %q"
 
 // Error values
 var (
@@ -70,21 +75,26 @@ func (cli *Client) Connect(opts *ConnectOptions, packetOpts *packet.CONNECTOptio
 
 	// Send the CONNECT Packet to the Server.
 	if err := cli.send(packet.NewCONNECT(packetOpts)); err != nil {
-		// TODO disconnect
+		// Disconnect the Network Connection.
+		if anotherErr := cli.disconnect(); anotherErr != nil {
+			return fmt.Errorf(strErrHandlingErr, anotherErr, err)
+		}
+
 		return err
 	}
 
 	// Wait for receiving the CONNACK Packet.
 	connacked := make(chan struct{})
+	errc := make(chan error)
 
 	go func() {
-		p, err := cli.receive()
+		p, err := receive(cli.conn.R)
 		if err != nil {
-			cli.Errc <- err
+			errc <- err
 		}
 
 		if _, ok := p.(*packet.CONNACK); !ok {
-			cli.Errc <- ErrNotCONNACK
+			errc <- ErrNotCONNACK
 		}
 
 		connacked <- struct{}{}
@@ -92,11 +102,17 @@ func (cli *Client) Connect(opts *ConnectOptions, packetOpts *packet.CONNECTOptio
 
 	select {
 	case <-connacked:
-	case err := <-cli.Errc:
-		// TODO disconnect
+	case err := <-errc:
+		// Disconnect the Network Connection.
+		if anotherErr := cli.disconnect(); anotherErr != nil {
+			return fmt.Errorf(strErrHandlingErr, anotherErr, err)
+		}
 		return err
 	case <-time.After(opts.CONNACKTimeout):
-		// TODO disconnect
+		// Disconnect the Network Connection.
+		if anotherErr := cli.disconnect(); anotherErr != nil {
+			return fmt.Errorf(strErrHandlingErr, anotherErr, ErrCONNACKTimeout)
+		}
 		return ErrCONNACKTimeout
 	}
 
@@ -107,11 +123,23 @@ func (cli *Client) Connect(opts *ConnectOptions, packetOpts *packet.CONNECTOptio
 	go func() {
 		// Send MQTT Control Packets.
 		for p := range cli.sendc {
+			// Lock for the update of the Client's fields.
+			cli.mu.Lock()
+
 			if err := cli.send(p); err != nil {
-				// TODO disconnect
-				cli.Errc <- err
+				// Disconnect the Network Connection.
+				if anotherErr := cli.disconnect(); anotherErr != nil {
+					cli.Errc <- fmt.Errorf(strErrHandlingErr, anotherErr, ErrCONNACKTimeout)
+				} else {
+					cli.Errc <- err
+				}
+
+				cli.mu.Unlock()
+
 				break
 			}
+
+			cli.mu.Unlock()
 		}
 	}()
 
@@ -119,9 +147,37 @@ func (cli *Client) Connect(opts *ConnectOptions, packetOpts *packet.CONNECTOptio
 	go func() {
 		// Receive MQTT Control Packets from the Server.
 		for {
-			if _, err := cli.receive(); err != nil {
-				// TODO disconnect
+			var r *bufio.Reader
+
+			cli.mu.RLock()
+
+			if cli.conn == nil {
+				cli.mu.RUnlock()
+				break
+			}
+
+			r = cli.conn.R
+
+			cli.mu.RUnlock()
+
+			if _, err := receive(r); err != nil {
+				// Lock for the update of the Client's fields.
+				cli.mu.Lock()
+
+				if cli.conn == nil {
+					cli.mu.Unlock()
+					break
+				}
+
+				// Disconnect the Network Connection.
+				if anotherErr := cli.Disconnect(); anotherErr != nil {
+					cli.Errc <- fmt.Errorf(strErrHandlingErr, anotherErr, ErrCONNACKTimeout)
+					cli.mu.Unlock()
+					break
+				}
+
 				cli.Errc <- err
+				cli.mu.Unlock()
 				break
 			}
 		}
@@ -137,15 +193,10 @@ func (cli *Client) Disconnect() error {
 	cli.mu.Lock()
 	defer cli.mu.Unlock()
 
-	// Return an error if the Client has not yet connected to the Server.
-	if cli.conn == nil {
-		return ErrNotYetConnected
-	}
+	// Disconnect the Network Connection.
+	err := cli.disconnect()
 
-	// Send the DISCONNECT Packet to the Server.
-
-	// Close the Network Connection.
-	return cli.conn.Close()
+	return err
 }
 
 // send sends an MQTT Control Packet to the Server.
@@ -158,9 +209,9 @@ func (cli *Client) send(p packet.Packet) error {
 }
 
 // receive receives MQTT Control Packets from the Server
-func (cli *Client) receive() (packet.Packet, error) {
+func receive(r *bufio.Reader) (packet.Packet, error) {
 	// Get the first byte of the Packet.
-	b, err := cli.conn.R.ReadByte()
+	b, err := r.ReadByte()
 	if err != nil {
 		return nil, err
 	}
@@ -175,7 +226,7 @@ func (cli *Client) receive() (packet.Packet, error) {
 	var mp uint32 = 1 // multiplier
 	var rl uint32     // the Remaining Length
 	for {
-		b, err = cli.conn.R.ReadByte()
+		b, err = r.ReadByte()
 		if err != nil {
 			return nil, err
 		}
@@ -195,7 +246,7 @@ func (cli *Client) receive() (packet.Packet, error) {
 	remaining := make([]byte, rl)
 
 	if rl > 0 {
-		if _, err = io.ReadFull(cli.conn.R, remaining); err != nil {
+		if _, err = io.ReadFull(r, remaining); err != nil {
 			return nil, err
 		}
 	}
@@ -211,6 +262,30 @@ func (cli *Client) receive() (packet.Packet, error) {
 	}
 
 	return p, nil
+}
+
+// disconnect sends the DISCONNECT Packet to the Server and
+// closes the Network Connection.
+func (cli *Client) disconnect() error {
+	// Return an error if the Client has not yet connected to the Server.
+	if cli.conn == nil {
+		return ErrNotYetConnected
+	}
+
+	// Send the DISCONNECT Packet to the Server.
+	if err := cli.send(packet.NewDISCONNECT()); err != nil {
+		return err
+	}
+
+	// Close the Network Connection.
+	if err := cli.conn.Close(); err != nil {
+		return err
+	}
+
+	// Clear the Network Connection of the Client.
+	cli.conn = nil
+
+	return nil
 }
 
 // New creates and returns a Client.

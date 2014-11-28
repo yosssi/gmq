@@ -34,6 +34,7 @@ var (
 // Commands
 var cmds = []*cmd.Cmd{
 	cmd.Conn,
+	cmd.Disconn,
 }
 
 func init() {
@@ -43,13 +44,21 @@ func init() {
 func main() {
 	// Print the version and exit.
 	if *v {
-		fmt.Printf("GMQ Client %s\n", client.Version)
+		printVersion()
 		exit(0)
 		return
 	}
 
 	// Create an MQTT client.
 	cli := client.New()
+
+	go func() {
+		for err := range cli.Errc {
+			os.Stderr.WriteString("\n")
+			printError(err)
+			printHeader()
+		}
+	}()
 
 	// Read lines from the standard input.
 	scanner := bufio.NewScanner(stdin)
@@ -70,9 +79,7 @@ InputLoop:
 
 		// Print the help if the command name "help" is specified.
 		if cmdName == "help" {
-			for _, c := range cmds {
-				fmt.Fprintf(os.Stdout, "%-11s %s\n", c.Name, c.Usage)
-			}
+			printHelp()
 			continue
 		}
 
@@ -89,11 +96,14 @@ InputLoop:
 					continue InputLoop
 				}
 
+				fmt.Println("command was executed successfully.")
+
 				continue InputLoop
 			}
 		}
 
 		fmt.Fprintf(os.Stderr, "command %q was not found.\n", cmdName)
+		printHelp()
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -107,4 +117,16 @@ func printHeader() {
 
 func printError(err error) {
 	fmt.Fprintf(os.Stderr, "%s.\n", err)
+}
+
+func printVersion() {
+	fmt.Printf("GMQ Client %s\n", client.Version)
+}
+
+func printHelp() {
+	printVersion()
+	fmt.Println("Usage:")
+	for _, c := range cmds {
+		fmt.Fprintf(os.Stdout, "%-11s %s\n", c.Name, c.Usage)
+	}
 }

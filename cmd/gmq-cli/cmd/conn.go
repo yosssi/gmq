@@ -9,10 +9,10 @@ import (
 	"github.com/yosssi/gmq/common/packet"
 )
 
-// Conn is a command which sends a connection request to the server.
+// Conn is a command which sends a connection request to the Server.
 var Conn = &Cmd{
 	Name:  "conn",
-	Usage: "send a connection request to the server",
+	Usage: "send a connection request to the Server",
 	Run:   conn,
 }
 
