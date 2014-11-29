@@ -1,5 +1,7 @@
 package packet
 
+import "os"
+
 // Defalut values
 var (
 	DefaultCleanSession      = true
@@ -30,6 +32,11 @@ type CONNECTOptions struct {
 
 // Init initializes the CONNECTOptions.
 func (opts *CONNECTOptions) Init() {
+	if opts.ClientID == "" {
+		hostname, _ := os.Hostname()
+		opts.ClientID = hostname
+	}
+
 	if opts.CleanSession == nil {
 		opts.CleanSession = &DefaultCleanSession
 	}
