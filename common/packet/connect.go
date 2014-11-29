@@ -3,6 +3,9 @@ package packet
 // Length of the Variable header of the CONNECT Packet.
 const lenCONNECTVariableHeader = 10
 
+// Protocol levels
+const protocolLevelVersion3_1_1 = 0x04
+
 // CONNECT represents the CONNECT Packet.
 type CONNECT struct {
 	Base
@@ -59,14 +62,14 @@ func (p *CONNECT) setVariableHeader() {
 	b := make([]byte, lenCONNECTVariableHeader)
 
 	// Set bytes.
-	b[0] = 0                // Length MSB (0)
-	b[1] = 4                // Length LSB (4)
-	b[2] = 77               // 'M'
-	b[3] = 81               // 'Q'
-	b[4] = 84               // 'T'
-	b[5] = 84               // 'T'
-	b[6] = 4                // Level (4)
-	b[7] = p.connectFlags() // Connect Flags
+	b[0] = 0                         // Length MSB (0)
+	b[1] = 4                         // Length LSB (4)
+	b[2] = 77                        // 'M'
+	b[3] = 81                        // 'Q'
+	b[4] = 84                        // 'T'
+	b[5] = 84                        // 'T'
+	b[6] = protocolLevelVersion3_1_1 // Protocol Level
+	b[7] = p.connectFlags()          // Connect Flags
 
 	// Set the Keep Alive.
 	keepAlive := encodeUint16(uint16(p.KeepAlive))
