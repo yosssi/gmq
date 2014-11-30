@@ -42,7 +42,7 @@ type Client struct {
 	// the Client to the Server.
 	sendc chan packet.Packet
 	// sess is a Session.
-	sess *mqtt.Session
+	sess *Session
 }
 
 // Connect tries to establish a network connection to the Server and
@@ -79,7 +79,7 @@ func (cli *Client) Connect(opts *ConnectOptions, connectOpts *packet.CONNECTOpti
 	// Create a Session or reuse the current Session.
 	if *connectOpts.CleanSession || cli.sess == nil || cli.sess.CleanSession {
 		// Craete a Session and set it to the Client.
-		cli.sess = mqtt.NewSession(&mqtt.SessionOptions{
+		cli.sess = NewSession(&SessionOptions{
 			CleanSession: connectOpts.CleanSession,
 			ClientID:     connectOpts.ClientID,
 		})

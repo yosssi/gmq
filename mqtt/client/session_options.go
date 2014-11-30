@@ -1,4 +1,4 @@
-package mqtt
+package client
 
 import "os"
 
