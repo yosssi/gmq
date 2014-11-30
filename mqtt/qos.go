@@ -1,4 +1,4 @@
-package common
+package mqtt
 
 // Values of QoS.
 const (

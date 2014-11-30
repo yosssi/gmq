@@ -8,8 +8,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/yosssi/gmq/client"
 	"github.com/yosssi/gmq/cmd/gmq-cli/cmd"
+	"github.com/yosssi/gmq/mqtt/client"
 )
 
 // header is a command line input header.

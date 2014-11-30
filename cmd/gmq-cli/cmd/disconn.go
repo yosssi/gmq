@@ -1,6 +1,6 @@
 package cmd
 
-import "github.com/yosssi/gmq/client"
+import "github.com/yosssi/gmq/mqtt/client"
 
 // Disconn is a command which disconnects the Network Connection to the Server.
 var Disconn = &Cmd{

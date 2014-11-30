@@ -1,4 +1,4 @@
-package common
+package mqtt
 
 // Session represents a Session which is a stateful interaction between a Client and a Server.
 type Session struct {

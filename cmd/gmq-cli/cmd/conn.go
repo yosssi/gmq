@@ -4,9 +4,9 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/yosssi/gmq/client"
-	"github.com/yosssi/gmq/common"
-	"github.com/yosssi/gmq/common/packet"
+	"github.com/yosssi/gmq/mqtt"
+	"github.com/yosssi/gmq/mqtt/client"
+	"github.com/yosssi/gmq/mqtt/packet"
 )
 
 // Conn is a command which sends a connection request to the Server.
@@ -46,7 +46,7 @@ func init() {
 	Conn.Flag.BoolVar(&connCleanSession, "c", packet.DefaultCleanSession, "Clean Session")
 	Conn.Flag.StringVar(&connWillTopic, "wc", "", "Will Topic")
 	Conn.Flag.StringVar(&connWillMessage, "wm", "", "Will Message")
-	Conn.Flag.UintVar(&connWillQoS, "wq", common.QoS0, "Will QoS")
+	Conn.Flag.UintVar(&connWillQoS, "wq", mqtt.QoS0, "Will QoS")
 	Conn.Flag.BoolVar(&connWillRetain, "wr", false, "Will Retain")
 	Conn.Flag.StringVar(&connUserName, "u", "", "User Name")
 	Conn.Flag.StringVar(&connPassword, "P", "", "Password")

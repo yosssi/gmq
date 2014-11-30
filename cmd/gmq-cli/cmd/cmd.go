@@ -3,7 +3,7 @@ package cmd
 import (
 	"flag"
 
-	"github.com/yosssi/gmq/client"
+	"github.com/yosssi/gmq/mqtt/client"
 )
 
 // Cmd represents a command of an MQTT client.

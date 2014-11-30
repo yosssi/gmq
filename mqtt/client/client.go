@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/yosssi/gmq/common"
-	"github.com/yosssi/gmq/common/packet"
+	"github.com/yosssi/gmq/mqtt"
+	"github.com/yosssi/gmq/mqtt/packet"
 )
 
 // Defalut values
@@ -37,7 +37,7 @@ type Client struct {
 	// mu is a reader/writer mutual exclusion lock for the Client.
 	mu sync.RWMutex
 	// networkConnection is a Network Connection.
-	conn *common.Connection
+	conn *mqtt.Connection
 	// sendc is a channel handling MQTT Control Packets which are sent from
 	// the Client to the Server.
 	sendc chan packet.Packet
@@ -67,7 +67,7 @@ func (cli *Client) Connect(opts *ConnectOptions, packetOpts *packet.CONNECTOptio
 	packetOpts.Init()
 
 	// Connect to the Server and create a Network Connection.
-	conn, err := common.NewConnection(opts.Network, opts.Address)
+	conn, err := mqtt.NewConnection(opts.Network, opts.Address)
 	if err != nil {
 		return err
 	}
