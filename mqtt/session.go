@@ -7,6 +7,16 @@ type Session struct {
 }
 
 // NewSession creates and returns a Session.
-func NewSession() *Session {
-	return &Session{}
+func NewSession(opts *SessionOptions) *Session {
+	// Initialize the options.
+	if opts == nil {
+		opts = &SessionOptions{}
+	}
+	opts.Init()
+
+	// Create and return a Session.
+	return &Session{
+		CleanSession: *opts.CleanSession,
+		ClientID:     opts.ClientID,
+	}
 }

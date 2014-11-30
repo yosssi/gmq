@@ -36,16 +36,18 @@ type Client struct {
 	Errc chan error
 	// mu is a reader/writer mutual exclusion lock for the Client.
 	mu sync.RWMutex
-	// networkConnection is a Network Connection.
+	// conn is a Network Connection.
 	conn *mqtt.Connection
 	// sendc is a channel handling MQTT Control Packets which are sent from
 	// the Client to the Server.
 	sendc chan packet.Packet
+	// sess is a Session.
+	sess *mqtt.Session
 }
 
 // Connect tries to establish a network connection to the Server and
 // sends a CONNECT Package to the Server.
-func (cli *Client) Connect(opts *ConnectOptions, packetOpts *packet.CONNECTOptions) error {
+func (cli *Client) Connect(opts *ConnectOptions, connectOpts *packet.CONNECTOptions) error {
 	// Lock for the update of the Client's fields.
 	cli.mu.Lock()
 	defer cli.mu.Unlock()
@@ -61,10 +63,11 @@ func (cli *Client) Connect(opts *ConnectOptions, packetOpts *packet.CONNECTOptio
 	}
 	opts.Init()
 
-	if packetOpts == nil {
-		packetOpts = &packet.CONNECTOptions{}
+	// Initialize the options for the CONNECT Packet.
+	if connectOpts == nil {
+		connectOpts = &packet.CONNECTOptions{}
 	}
-	packetOpts.Init()
+	connectOpts.Init()
 
 	// Connect to the Server and create a Network Connection.
 	conn, err := mqtt.NewConnection(opts.Network, opts.Address)
@@ -73,8 +76,16 @@ func (cli *Client) Connect(opts *ConnectOptions, packetOpts *packet.CONNECTOptio
 	}
 	cli.conn = conn
 
+	// Create a Session.
+	if cli.sess == nil || *connectOpts.CleanSession {
+		cli.sess = mqtt.NewSession(&mqtt.SessionOptions{
+			CleanSession: connectOpts.CleanSession,
+			ClientID:     connectOpts.ClientID,
+		})
+	}
+
 	// Send the CONNECT Packet to the Server.
-	if err := cli.send(packet.NewCONNECT(packetOpts)); err != nil {
+	if err := cli.send(packet.NewCONNECT(connectOpts)); err != nil {
 		// Disconnect the Network Connection.
 		if anotherErr := cli.disconnect(); anotherErr != nil {
 			return fmt.Errorf(strErrHandlingErr, anotherErr, err)

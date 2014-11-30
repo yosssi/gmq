@@ -15,14 +15,14 @@ type SessionOptions struct {
 }
 
 // Init initializes the options.
-func (o *SessionOptions) Init() {
+func (opts *SessionOptions) Init() {
 	// Initialize the CleanSession field
-	if o.CleanSession == nil {
-		o.CleanSession = &DefaultCleanSession
+	if opts.CleanSession == nil {
+		opts.CleanSession = &DefaultCleanSession
 	}
 
 	// Initialize the ClientID filed
-	if o.ClientID == "" {
-		o.ClientID = hostname
+	if opts.ClientID == "" {
+		opts.ClientID = hostname
 	}
 }
