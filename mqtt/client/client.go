@@ -76,12 +76,16 @@ func (cli *Client) Connect(opts *ConnectOptions, connectOpts *packet.CONNECTOpti
 	}
 	cli.conn = conn
 
-	// Create a Session.
-	if cli.sess == nil || *connectOpts.CleanSession {
+	// Create a Session or reuse the current Session.
+	if *connectOpts.CleanSession || cli.sess == nil || cli.sess.CleanSession {
+		// Craete a Session and set it to the Client.
 		cli.sess = mqtt.NewSession(&mqtt.SessionOptions{
 			CleanSession: connectOpts.CleanSession,
 			ClientID:     connectOpts.ClientID,
 		})
+	} else {
+		// Reuse the Session and set its Client Identifier to the options.
+		connectOpts.ClientID = cli.sess.ClientID
 	}
 
 	// Send the CONNECT Packet to the Server.
@@ -295,6 +299,11 @@ func (cli *Client) disconnect() error {
 
 	// Clear the Network Connection of the Client.
 	cli.conn = nil
+
+	// Clear the Session if the CleanSession is true.
+	if cli.sess != nil && cli.sess.CleanSession {
+		cli.sess = nil
+	}
 
 	return nil
 }
