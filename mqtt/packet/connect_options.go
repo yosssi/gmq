@@ -8,6 +8,9 @@ var (
 	DefaultKeepAlive    uint = 60
 )
 
+// Hostname
+var hostname, _ = os.Hostname()
+
 // CONNECTOptions represents options for a CONNECT Packet.
 type CONNECTOptions struct {
 	// clientID is the Client Identifier (ClientId) identifies the Client to the Server.
@@ -33,7 +36,6 @@ type CONNECTOptions struct {
 // Init initializes the CONNECTOptions.
 func (opts *CONNECTOptions) Init() {
 	if opts.ClientID == "" {
-		hostname, _ := os.Hostname()
 		opts.ClientID = hostname
 	}
 
