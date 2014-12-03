@@ -15,7 +15,6 @@ func (w *errWriter) Write(p []byte) (int, error) {
 var errTest = errors.New("testError")
 
 func TestBase_WriteTo_err(t *testing.T) {
-
 	b := Base{}
 
 	if _, err := b.WriteTo(&errWriter{}); err != errTest {
