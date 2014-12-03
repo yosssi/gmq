@@ -1,24 +1,9 @@
 package packet
 
 import (
-	"errors"
-	"fmt"
 	"io/ioutil"
 	"testing"
 )
-
-var errTest = errors.New("test error")
-
-type errWriter struct{}
-
-func (w *errWriter) Write(p []byte) (int, error) {
-	fmt.Println(len(p), p)
-	if len(p) > 0 {
-		return 0, errTest
-	}
-
-	return 0, nil
-}
 
 func Test_connect_WriteTo_errWriteFixedHeader(t *testing.T) {
 	p := NewCONNECT(nil)

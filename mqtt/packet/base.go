@@ -5,7 +5,7 @@ import (
 	"io"
 )
 
-// Base holds the common fields and method among MQTT Control Packets.
+// Base holds the common fields and methods among MQTT Control Packets.
 type Base struct {
 	FixedHeader    []byte
 	VariableHeader []byte
