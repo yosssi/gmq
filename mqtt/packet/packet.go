@@ -1,25 +1,20 @@
 package packet
 
-import (
-	"encoding/binary"
-	"io"
-)
+import "io"
 
 // Packet represents an MQTT Control Packet.
 type Packet interface {
 	io.WriterTo
 }
 
-//encodeUint16 takes a uint16 and returns a slice of bytes
-//representing its value in network order
+// encodeUint16 converts an unsigned 16-bit integer into
+// a slice of bytes in big-endian order.
 func encodeUint16(n uint16) []byte {
-	b := make([]byte, 2)
-	binary.BigEndian.PutUint16(b, n)
-	return b
+	return []byte{byte(n >> 8), byte(n)}
 }
 
-//encodeLength takes a uint value and returns uint32 of that value
-//in the encoding mechanism defined for the MQTT remaining lengths
+// encodeLength takes a uint value and returns uint32 of that value
+// in the encoding mechanism defined for the MQTT remaining lengths.
 func encodeLength(length uint) uint32 {
 	value := uint32(0)
 	digit := uint32(0)
