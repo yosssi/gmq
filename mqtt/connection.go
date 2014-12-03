@@ -15,7 +15,7 @@ type Connection struct {
 // NewConnection connects to the address on the named network,
 // creates a Network Connection and returns it.
 func NewConnection(network, address string) (*Connection, error) {
-	// Connect to the address on the named network
+	// Connect to the address on the named network.
 	conn, err := net.Dial(network, address)
 	if err != nil {
 		return nil, err
@@ -28,5 +28,6 @@ func NewConnection(network, address string) (*Connection, error) {
 		W:    bufio.NewWriter(conn),
 	}
 
+	// Return the Network Connection.
 	return c, nil
 }
