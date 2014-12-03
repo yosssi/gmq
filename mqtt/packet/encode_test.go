@@ -1,9 +1,6 @@
 package packet
 
-import (
-	"fmt"
-	"testing"
-)
+import "testing"
 
 func Test_encodeUint16(t *testing.T) {
 	testCases := []struct {
@@ -66,8 +63,19 @@ func Test_encodeUint16(t *testing.T) {
 }
 
 func Test_encodeLength(t *testing.T) {
-	fmt.Println(encodeLength(127))
-	fmt.Println(encodeLength(16383))
-	fmt.Println(encodeLength(2097151))
-	fmt.Println(encodeLength(268435455))
+	testCases := []struct {
+		in  uint
+		out uint32
+	}{
+		{127, 127},
+		{16383, 65407},
+		{2097151, 16777087},
+		{268435455, 4294967167},
+	}
+
+	for _, tc := range testCases {
+		if result := encodeLength(tc.in); result != tc.out {
+			t.Errorf("encodeLength(%d) => %d, want %d", tc.in, result, tc.out)
+		}
+	}
 }
