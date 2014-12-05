@@ -88,8 +88,14 @@ func (cli *Client) Connect(opts *ConnectOptions, connectOpts *packet.CONNECTOpti
 		connectOpts.ClientID = cli.sess.ClientID
 	}
 
+	// Create a CONNECT Packet.
+	p, err := packet.NewCONNECT(connectOpts)
+	if err != nil {
+		return err
+	}
+
 	// Send the CONNECT Packet to the Server.
-	if err := cli.send(packet.NewCONNECT(connectOpts)); err != nil {
+	if err := cli.send(p); err != nil {
 		// Disconnect the Network Connection.
 		if anotherErr := cli.disconnect(); anotherErr != nil {
 			return fmt.Errorf(strErrHandlingErr, anotherErr, err)

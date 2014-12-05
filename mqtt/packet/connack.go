@@ -49,7 +49,7 @@ type CONNACK struct {
 }
 
 // NewCONNACKFromBytes creates the CONNACK Packet from the byte data and returns it.
-func NewCONNACKFromBytes(fixedHeader, variableHeader []byte) (*CONNACK, error) {
+func NewCONNACKFromBytes(fixedHeader, variableHeader []byte) (Packet, error) {
 	// Check the length of the Fixed header.
 	if len(fixedHeader) != lenCONNACKFixedHeader {
 		return nil, ErrCONNACKInvalidFixedHeaderLen

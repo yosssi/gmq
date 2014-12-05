@@ -5,7 +5,7 @@ import "testing"
 func TestNewDISCONNECT(t *testing.T) {
 	p := NewDISCONNECT()
 
-	fh := p.FixedHeader
+	fh := p.(*DISCONNECT).FixedHeader
 
 	if get, want := len(fh), 2; get != want {
 		t.Errorf("len(fh) => %d, want => %d", get, want)

@@ -141,13 +141,15 @@ func TestNewCONNACKFromBytes(t *testing.T) {
 			continue
 		}
 
-		if p.SessionPresent != tc.out.SessionPresent {
-			t.Errorf(" p.SessionPresent => %t, want => %t", p.SessionPresent, tc.out.SessionPresent)
+		ca := p.(*CONNACK)
+
+		if ca.SessionPresent != tc.out.SessionPresent {
+			t.Errorf(" p.SessionPresent => %t, want => %t", ca.SessionPresent, tc.out.SessionPresent)
 			continue
 		}
 
-		if p.ConnectReturnCode != tc.out.ConnectReturnCode {
-			t.Errorf(" p.ConnectReturnCode => %X, want => %X", p.ConnectReturnCode, tc.out.ConnectReturnCode)
+		if ca.ConnectReturnCode != tc.out.ConnectReturnCode {
+			t.Errorf(" ca.ConnectReturnCode => %X, want => %X", ca.ConnectReturnCode, tc.out.ConnectReturnCode)
 		}
 	}
 }

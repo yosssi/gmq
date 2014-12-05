@@ -6,7 +6,7 @@ type DISCONNECT struct {
 }
 
 // NewDISCONNECT creates and returns the DISCONNECT Packet.
-func NewDISCONNECT() *DISCONNECT {
+func NewDISCONNECT() Packet {
 	// Create a DISCONNECT Packet.
 	p := &DISCONNECT{}
 

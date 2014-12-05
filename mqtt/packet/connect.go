@@ -1,31 +1,36 @@
 package packet
 
+import "errors"
+
 // Length of the Variable header of the CONNECT Packet.
 const lenCONNECTVariableHeader = 10
 
 // Protocol levels
 const protocolLevelVersion3_1_1 = 0x04
 
+// Error values
+var ErrCONNECTClientIDEmpty = errors.New("the Client Identifier is empty")
+
 // CONNECT represents the CONNECT Packet.
 type CONNECT struct {
 	Base
-	// clientID is the Client Identifier (ClientId) identifies the Client to the Server.
+	// ClientID is the Client Identifier (ClientID) which identifies the Client to the Server.
 	ClientID string
-	// cleanSession is the Clean Session of the connect flags.
+	// CleanSession is the Clean Session of the Connect Flags.
 	CleanSession bool
-	// willTopic is the Will Topic of the payload.
+	// WillTopic is the Will Topic of the Payload.
 	WillTopic string
-	// willMessage is the Will Message of the payload.
+	// WillMessage is the Will Message of the Payload.
 	WillMessage string
-	// willQoS is the Will QoS of the connect flags.
+	// WillQoS is the Will QoS of the Connect Flags.
 	WillQoS uint
-	// willRetain is the Will Retain of the connect flags.
+	// WillRetain is the Will Retain of the Connect Flags.
 	WillRetain bool
-	// userName is the user name used by the server for authentication and authorization.
+	// UserName is the User Name used by the Server for authentication and authorization.
 	UserName string
-	// password is the password used by the server for authentication and authorization.
+	// Password is the Password used by the Server for authentication and authorization.
 	Password string
-	// keepAlive is the Keep Alive in the variable header.
+	// KeepAlive is the Keep Alive in the Variable header.
 	KeepAlive uint
 }
 
@@ -86,20 +91,20 @@ func (p *CONNECT) setPayload() {
 	var b []byte
 
 	// Append the Client Identifier.
-	appendCONNECTPayload(&b, p.ClientID)
+	b = appendCONNECTPayload(b, p.ClientID)
 
 	// Append the Will Topic and Will Message
 	if p.will() {
-		appendCONNECTPayload(&b, p.WillTopic)
-		appendCONNECTPayload(&b, p.WillMessage)
+		b = appendCONNECTPayload(b, p.WillTopic)
+		b = appendCONNECTPayload(b, p.WillMessage)
 	}
 
 	if p.UserName != "" {
-		appendCONNECTPayload(&b, p.UserName)
+		b = appendCONNECTPayload(b, p.UserName)
 	}
 
 	if p.Password != "" {
-		appendCONNECTPayload(&b, p.Password)
+		b = appendCONNECTPayload(b, p.Password)
 	}
 
 	p.Payload = b
@@ -139,18 +144,26 @@ func (p *CONNECT) will() bool {
 	return p.WillTopic != "" && p.WillMessage != ""
 }
 
-func appendCONNECTPayload(b *[]byte, s string) {
-	*b = append(*b, encodeUint16(uint16(len(s)))...)
-	*b = append(*b, []byte(s)...)
+// appendCONNECTPayload appends the length and the content of "s" to "b" and
+// return the slice.
+func appendCONNECTPayload(b []byte, s string) []byte {
+	bytes := append(b, encodeUint16(uint16(len(s)))...)
+	bytes = append(bytes, []byte(s)...)
+	return bytes
 }
 
 // NewCONNECT creates and returns the CONNECT Packet.
-func NewCONNECT(opts *CONNECTOptions) Packet {
+func NewCONNECT(opts *CONNECTOptions) (Packet, error) {
 	// Initialize the options.
 	if opts == nil {
 		opts = &CONNECTOptions{}
 	}
 	opts.Init()
+
+	// Check the ClientID.
+	if opts.ClientID == "" {
+		return nil, ErrCONNECTClientIDEmpty
+	}
 
 	// Create the CONNECT Packet.
 	p := &CONNECT{
@@ -165,15 +178,15 @@ func NewCONNECT(opts *CONNECTOptions) Packet {
 		KeepAlive:    *opts.KeepAlive,
 	}
 
-	// Set the Variable header.
+	// Set the Variable header to the Packet.
 	p.setVariableHeader()
 
-	// Set the Payload.
+	// Set the Payload to the Packet.
 	p.setPayload()
 
-	// Set the Fixed header.
+	// Set the Fixed header to the Packet.
 	p.setFixedHeader()
 
-	// Return the CONNECT Packet.
-	return p
+	// Return the Packet.
+	return p, nil
 }
