@@ -4,6 +4,7 @@ import "testing"
 
 func TestCONNECTOptions_Init(t *testing.T) {
 	opts := &CONNECTOptions{}
+
 	opts.Init()
 
 	if *opts.CleanSession != DefaultCleanSession {
@@ -11,6 +12,6 @@ func TestCONNECTOptions_Init(t *testing.T) {
 	}
 
 	if *opts.KeepAlive != DefaultKeepAlive {
-		t.Errorf("*opts.KeepAlive => %q, want %q", *opts.KeepAlive, DefaultKeepAlive)
+		t.Errorf("*opts.KeepAlive => %d, want %d", *opts.KeepAlive, DefaultKeepAlive)
 	}
 }

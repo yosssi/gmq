@@ -1,44 +1,35 @@
 package packet
 
-import "os"
-
 // Defalut values
 var (
 	DefaultCleanSession      = true
 	DefaultKeepAlive    uint = 60
 )
 
-// Hostname
-var hostname, _ = os.Hostname()
-
 // CONNECTOptions represents options for a CONNECT Packet.
 type CONNECTOptions struct {
-	// clientID is the Client Identifier (ClientId) identifies the Client to the Server.
+	// ClientID is the Client Identifier (ClientID) which identifies the Client to the Server.
 	ClientID string
-	// CleanSession is the Clean Session of the connect flags.
+	// CleanSession is the Clean Session of the Connect Flags.
 	CleanSession *bool
-	// WillTopic is the Will Topic of the payload.
+	// WillTopic is the Will Topic of the Payload.
 	WillTopic string
-	// WillMessage is the Will Message of the payload.
+	// WillMessage is the Will Message of the Payload.
 	WillMessage string
-	// WillQoS is the Will QoS of the connect flags.
+	// WillQoS is the Will QoS of the Connect Flags.
 	WillQoS uint
-	// WillRetain is the Will Retain of the connect flags.
+	// WillRetain is the Will Retain of the Connect Flags.
 	WillRetain bool
-	// UserName is the user name used by the server for authentication and authorization.
+	// UserName is the User Name used by the Server for authentication and authorization.
 	UserName string
-	// Password is the password used by the server for authentication and authorization.
+	// Password is the Password used by the Server for authentication and authorization.
 	Password string
-	// KeepAlive is the Keep Alive in the variable header.
+	// KeepAlive is the Keep Alive in the Variable header.
 	KeepAlive *uint
 }
 
 // Init initializes the CONNECTOptions.
 func (opts *CONNECTOptions) Init() {
-	if opts.ClientID == "" {
-		opts.ClientID = hostname
-	}
-
 	if opts.CleanSession == nil {
 		opts.CleanSession = &DefaultCleanSession
 	}
