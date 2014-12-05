@@ -13,41 +13,38 @@ const firstByteCONNACKFixedHeader = TypeCONNACK << 4
 
 // Connect Return code values of the CONNACK Packet
 const (
-	CONNACKConnectionAccepted                           = 0x00
-	CONNACKConnectionRefusedUnacceptableProtocolVersion = 0x01
-	CONNACKConnectionRefusedIdentifierRejected          = 0x02
-	CONNACKConnectionRefusedServerUnavailable           = 0x03
-	CONNACKConnectionRefusedBadUserNameOrPassword       = 0x04
-	CONNACKConnectionRefusedNotAuthorized               = 0x05
+	CONNACKAccepted                    = 0x00
+	CONNACKUnacceptableProtocolVersion = 0x01
+	CONNACKIdentifierRejected          = 0x02
+	CONNACKServerUnavailable           = 0x03
+	CONNACKBadUserNameOrPassword       = 0x04
+	CONNACKNotAuthorized               = 0x05
 )
 
 // Error values
 var (
-	ErrInvalidCONNACKFixedHeaderLen          = errors.New("the length of the Fixed header of the CONNACK Packet is invalid")
-	ErrInvalidCONNACKVariableHeaderLen       = errors.New("the length of the Variable header of the CONNACK Packet is invalid")
-	ErrInvalidCONNACKFixedHeaderFirstByte    = errors.New("the first byte of the Fixed header of the CONNACK Packet is invalid")
-	ErrInvalidCONNACKRemainingLength         = errors.New("the Remaining Length of the Fixed header of the CONNACK Packet is invalid")
-	ErrInvalidCONNACKConnectAcknowledgeFlags = errors.New("the Connect Acknowledge Flags of the Variable header of the CONNACK Packet is invalid")
-	ErrInvalidCONNACKConnectReturnCode       = errors.New("the Connect Return code of the Variable header of the CONNACK Packet is invalid")
+	ErrCONNACKInvalidFixedHeaderLen          = errors.New("the length of the Fixed header of the CONNACK Packet is invalid")
+	ErrCONNACKInvalidVariableHeaderLen       = errors.New("the length of the Variable header of the CONNACK Packet is invalid")
+	ErrCONNACKInvalidFixedHeaderFirstByte    = errors.New("the first byte of the Fixed header of the CONNACK Packet is invalid")
+	ErrCONNACKInvalidRemainingLength         = errors.New("the Remaining Length of the Fixed header of the CONNACK Packet is invalid")
+	ErrCONNACKInvalidConnectAcknowledgeFlags = errors.New("the Connect Acknowledge Flags of the Variable header of the CONNACK Packet is invalid")
+	ErrCONNACKInvalidConnectReturnCode       = errors.New("the Connect Return code of the Variable header of the CONNACK Packet is invalid")
 )
 
 // Valid Connect Return code values
 var validConnectReturnCodes = []byte{
-	CONNACKConnectionAccepted,
-	CONNACKConnectionRefusedUnacceptableProtocolVersion,
-	CONNACKConnectionRefusedIdentifierRejected,
-	CONNACKConnectionRefusedServerUnavailable,
-	CONNACKConnectionRefusedBadUserNameOrPassword,
-	CONNACKConnectionRefusedNotAuthorized,
+	CONNACKAccepted,
+	CONNACKUnacceptableProtocolVersion,
+	CONNACKIdentifierRejected,
+	CONNACKServerUnavailable,
+	CONNACKBadUserNameOrPassword,
+	CONNACKNotAuthorized,
 }
 
 // CONNACK represents the CONNACK Packet.
 type CONNACK struct {
 	Base
-	// SessionPresentFlag is the Session Present Flag of
-	// the Connect Acknowledge Flags.
-	SessionPresentFlag bool
-	// ConnectReturnCode is the Connect Return Code.
+	SessionPresent    bool
 	ConnectReturnCode byte
 }
 
@@ -55,27 +52,27 @@ type CONNACK struct {
 func NewCONNACKFromBytes(fixedHeader, variableHeader []byte) (*CONNACK, error) {
 	// Check the length of the Fixed header.
 	if len(fixedHeader) != lenCONNACKFixedHeader {
-		return nil, ErrInvalidCONNACKFixedHeaderLen
+		return nil, ErrCONNACKInvalidFixedHeaderLen
 	}
 
 	// Check the length of the Variable header.
 	if len(variableHeader) != lenCONNACKVariableHeader {
-		return nil, ErrInvalidCONNACKVariableHeaderLen
+		return nil, ErrCONNACKInvalidVariableHeaderLen
 	}
 
 	// Check the first byte of the Fixed header.
 	if fixedHeader[0] != firstByteCONNACKFixedHeader {
-		return nil, ErrInvalidCONNACKFixedHeaderFirstByte
+		return nil, ErrCONNACKInvalidFixedHeaderFirstByte
 	}
 
 	// Check the Remaining Length of the Fixed header.
 	if fixedHeader[1] != lenCONNACKVariableHeader {
-		return nil, ErrInvalidCONNACKRemainingLength
+		return nil, ErrCONNACKInvalidRemainingLength
 	}
 
 	// Check the Connect Acknowledge Flags of the Variable header.
 	if variableHeader[0]>>1 != 0x00 {
-		return nil, ErrInvalidCONNACKConnectAcknowledgeFlags
+		return nil, ErrCONNACKInvalidConnectAcknowledgeFlags
 	}
 
 	// Check the Connect Return code of the Variable header.
@@ -91,7 +88,7 @@ func NewCONNACKFromBytes(fixedHeader, variableHeader []byte) (*CONNACK, error) {
 	}
 
 	if !validConnectReturnCode {
-		return nil, ErrInvalidCONNACKConnectReturnCode
+		return nil, ErrCONNACKInvalidConnectReturnCode
 	}
 
 	// Create a CONNACK Packet.
@@ -103,8 +100,8 @@ func NewCONNACKFromBytes(fixedHeader, variableHeader []byte) (*CONNACK, error) {
 	// Set the Variable header to the Packet.
 	p.VariableHeader = variableHeader
 
-	// Set the Session Present Flag to the Packet.
-	p.SessionPresentFlag = (variableHeader[0]<<7 == 0x80)
+	// Set the Session Present flag to the Packet.
+	p.SessionPresent = (variableHeader[0]<<7 == 0x80)
 
 	// Set the Connect Return Code to the Packet.
 	p.ConnectReturnCode = connectReturnCode
