@@ -106,6 +106,6 @@ func NewCONNACKFromBytes(fixedHeader, variableHeader []byte) (*CONNACK, error) {
 	// Set the Connect Return Code to the Packet.
 	p.ConnectReturnCode = connectReturnCode
 
-	// Return the CONNACK Packet.
+	// Return the Packet.
 	return p, nil
 }

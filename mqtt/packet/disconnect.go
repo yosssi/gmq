@@ -11,7 +11,8 @@ func NewDISCONNECT() *DISCONNECT {
 	p := &DISCONNECT{}
 
 	// Set the Fixed header to the Packet.
-	p.FixedHeader = []byte{TypeDISCONNECT << 4, 0}
+	p.FixedHeader = []byte{TypeDISCONNECT << 4, 0x00}
 
+	// Return the Packet.
 	return p
 }
