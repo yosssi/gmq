@@ -5,7 +5,7 @@ import "errors"
 // Length of the Variable header of the CONNECT Packet.
 const lenCONNECTVariableHeader = 10
 
-// Protocol levels
+// Protocol level
 const protocolLevelVersion3_1_1 = 0x04
 
 // Error values
@@ -14,7 +14,7 @@ var ErrCONNECTClientIDEmpty = errors.New("the Client Identifier is empty")
 // CONNECT represents the CONNECT Packet.
 type CONNECT struct {
 	Base
-	// ClientID is the Client Identifier (ClientID) which identifies the Client to the Server.
+	// ClientID is the Client Identifier which identifies the Client to the Server.
 	ClientID string
 	// CleanSession is the Clean Session of the Connect Flags.
 	CleanSession bool
@@ -61,18 +61,18 @@ func (p *CONNECT) setFixedHeader() {
 	p.FixedHeader = b
 }
 
-// setVariableHeader sets the Variable header.
+// setVariableHeader sets the Variable header to the Packet.
 func (p *CONNECT) setVariableHeader() {
 	// Create a byte slice holding the Variable header.
 	b := make([]byte, lenCONNECTVariableHeader)
 
 	// Set bytes.
-	b[0] = 0                         // Length MSB (0)
-	b[1] = 4                         // Length LSB (4)
-	b[2] = 77                        // 'M'
-	b[3] = 81                        // 'Q'
-	b[4] = 84                        // 'T'
-	b[5] = 84                        // 'T'
+	b[0] = 0x00                      // Length MSB (0)
+	b[1] = 0x04                      // Length LSB (4)
+	b[2] = 0x4D                      // 'M'
+	b[3] = 0x51                      // 'Q'
+	b[4] = 0x54                      // 'T'
+	b[5] = 0x54                      // 'T'
 	b[6] = protocolLevelVersion3_1_1 // Protocol Level
 	b[7] = p.connectFlags()          // Connect Flags
 
@@ -160,7 +160,7 @@ func NewCONNECT(opts *CONNECTOptions) (Packet, error) {
 	}
 	opts.Init()
 
-	// Check the ClientID.
+	// Check the Client Identifier.
 	if opts.ClientID == "" {
 		return nil, ErrCONNECTClientIDEmpty
 	}

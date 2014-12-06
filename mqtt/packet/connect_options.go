@@ -13,7 +13,7 @@ var hostname, _ = os.Hostname()
 
 // CONNECTOptions represents options for a CONNECT Packet.
 type CONNECTOptions struct {
-	// ClientID is the Client Identifier (ClientID) which identifies the Client to the Server.
+	// ClientID is the Client Identifier which identifies the Client to the Server.
 	ClientID string
 	// CleanSession is the Clean Session of the Connect Flags.
 	CleanSession *bool
