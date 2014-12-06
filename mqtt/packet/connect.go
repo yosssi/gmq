@@ -112,30 +112,39 @@ func (p *CONNECT) setPayload() {
 
 // connectFlags creates and returns the bytes representing the Connect Flags.
 func (p *CONNECT) connectFlags() byte {
+	// Define byte which represents the Connect Flags.
 	var b byte
 
+	// Set 1 to the Bit 7 if the Packets has the User Name.
 	if p.UserName != "" {
-		b |= 128
+		b |= 0x80
 	}
 
+	// Set 1 to the Bit 6 if the Packets has the Password.
 	if p.Password != "" {
-		b |= 64
+		b |= 0x40
 	}
 
+	// Set 1 to the Bit 5 if the Packets has the Will Retain.
 	if p.WillRetain {
-		b |= 32
+		b |= 0x20
 	}
 
+	// Set 00, 01 or 02 to the Bit 4 and 3 according to the QoS.
 	b |= byte(p.WillQoS) << 3
 
+	// Set 1 to the Bit 2 if the Packets has the Will Topic and the Will Message.
 	if p.will() {
-		b |= 4
+		b |= 0x04
 	}
-
+	// Set 1 to the Bit 1 if the Packets has the Clean Session.
 	if p.CleanSession {
-		b |= 2
+		b |= 0x02
 	}
 
+	// The Bit 0 is reserved and should be set to 0.
+
+	// Return the byte which represents the Connect Flags.
 	return b
 }
 
