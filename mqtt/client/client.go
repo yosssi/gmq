@@ -119,7 +119,7 @@ func Receive(r *bufio.Reader) (byte, packet.Packet, error) {
 	}
 
 	// Extract the MQTT Control Packet Type from the first byte.
-	packetType := b >> 4
+	ptype := b >> 4
 
 	// Create the Fixed header.
 	fixedHeader := []byte{b}
@@ -155,7 +155,7 @@ func Receive(r *bufio.Reader) (byte, packet.Packet, error) {
 
 	var p packet.Packet
 
-	switch packetType {
+	switch ptype {
 	case packet.TypeCONNACK:
 		// Create the CONNACK Packet from the byte data to validate the data.
 		if p, err = packet.NewCONNACKFromBytes(fixedHeader, remaining); err != nil {
@@ -163,5 +163,5 @@ func Receive(r *bufio.Reader) (byte, packet.Packet, error) {
 		}
 	}
 
-	return packetType, p, nil
+	return ptype, p, nil
 }

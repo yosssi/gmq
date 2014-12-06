@@ -107,7 +107,6 @@ func TestClient_Connect_newCONNECTErr(t *testing.T) {
 			WillTopic: "willTopic",
 		},
 	)
-
 	if err != packet.ErrCONNECTWillTopicMessageEmpty {
 		if err == nil {
 			t.Errorf("err => nil, want => %q", packet.ErrCONNECTWillTopicMessageEmpty)
@@ -171,7 +170,6 @@ func TestClient_Disconnect_cleanSession(t *testing.T) {
 		},
 		nil,
 	)
-
 	if err != nil {
 		t.Errorf("err => %q, want => nil", err)
 	}
@@ -192,5 +190,28 @@ func TestClient_Send(t *testing.T) {
 		} else {
 			t.Errorf("err => %q, want => %q", err, errTest)
 		}
+	}
+}
+
+func TestClient_Receive(t *testing.T) {
+	cli := &Client{}
+
+	err := cli.Connect(
+		&ConnectOptions{
+			Address: testAddress,
+		},
+		nil,
+	)
+	if err != nil {
+		t.Errorf("err => %q, want => nil", err)
+	}
+
+	_, _, err = Receive(cli.Conn.R)
+	if err != nil {
+		t.Errorf("err => %q, want => nil", err)
+	}
+
+	if err := cli.Disconnect(); err != nil {
+		t.Errorf("err => %q, want => nil", err)
 	}
 }
