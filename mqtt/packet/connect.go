@@ -148,13 +148,13 @@ func (p *CONNECT) connectFlags() byte {
 	return b
 }
 
-// will returns if the Packet has both the Will Topic and Will Message.
+// will returns true if the Packet has both the Will Topic and Will Message.
 func (p *CONNECT) will() bool {
 	return p.WillTopic != "" && p.WillMessage != ""
 }
 
-// appendCONNECTPayload appends the length and the content of "s" to "b" and
-// return the slice.
+// appendCONNECTPayload appends the length and the content of the string to
+// the slice and return the slice.
 func appendCONNECTPayload(b []byte, s string) []byte {
 	bytes := append(b, encodeUint16(uint16(len(s)))...)
 	bytes = append(bytes, []byte(s)...)
