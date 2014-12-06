@@ -9,7 +9,10 @@ const lenCONNECTVariableHeader = 10
 const protocolLevelVersion3_1_1 = 0x04
 
 // Error values
-var ErrCONNECTClientIDEmpty = errors.New("the Client Identifier is empty")
+var (
+	ErrCONNECTClientIDEmpty         = errors.New("the Client Identifier is empty")
+	ErrCOONECTWillTopicMessageEmpty = errors.New("the Will Topic or Will Message is empty")
+)
 
 // CONNECT represents the CONNECT Packet.
 type CONNECT struct {
@@ -42,23 +45,8 @@ func (p *CONNECT) setFixedHeader() {
 	// Calculate the Remaining Length.
 	rl := encodeLength(uint(lenCONNECTVariableHeader + len(p.Payload)))
 
-	if rl&0xFF000000 > 0 {
-		b = append(b, byte((rl&0xFF000000)>>24))
-		b = append(b, byte((rl&0x00FF0000)>>16))
-		b = append(b, byte((rl&0x0000FF00)>>8))
-		b = append(b, byte(rl&0x000000FF))
-	} else if rl&0x00FF0000 > 0 {
-		b = append(b, byte((rl&0x00FF0000)>>16))
-		b = append(b, byte((rl&0x0000FF00)>>8))
-		b = append(b, byte(rl&0x000000FF))
-	} else if rl&0x0000FF00 > 0 {
-		b = append(b, byte((rl&0x0000FF00)>>8))
-		b = append(b, byte(rl&0x000000FF))
-	} else {
-		b = append(b, byte(rl&0x000000FF))
-	}
-
-	p.FixedHeader = b
+	// Append the Remaining Length to the slice and set it to the Fixed Header.
+	p.FixedHeader = appendRemaininLength(b, rl)
 }
 
 // setVariableHeader sets the Variable header to the Packet.
@@ -90,23 +78,26 @@ func (p *CONNECT) setPayload() {
 	// Create a byte slice holding the Payload.
 	var b []byte
 
-	// Append the Client Identifier.
+	// Append the Client Identifier to the slice.
 	b = appendCONNECTPayload(b, p.ClientID)
 
-	// Append the Will Topic and Will Message
+	// Append the Will Topic and Will Message to the slice.
 	if p.will() {
 		b = appendCONNECTPayload(b, p.WillTopic)
 		b = appendCONNECTPayload(b, p.WillMessage)
 	}
 
+	// Append the User Name to the slice.
 	if p.UserName != "" {
 		b = appendCONNECTPayload(b, p.UserName)
 	}
 
+	// Append the Password to the slice.
 	if p.Password != "" {
 		b = appendCONNECTPayload(b, p.Password)
 	}
 
+	// Set the slice to the Payload.
 	p.Payload = b
 }
 
@@ -156,9 +147,9 @@ func (p *CONNECT) will() bool {
 // appendCONNECTPayload appends the length and the content of the string to
 // the slice and return the slice.
 func appendCONNECTPayload(b []byte, s string) []byte {
-	bytes := append(b, encodeUint16(uint16(len(s)))...)
-	bytes = append(bytes, []byte(s)...)
-	return bytes
+	b = append(b, encodeUint16(uint16(len(s)))...)
+	b = append(b, []byte(s)...)
+	return b
 }
 
 // NewCONNECT creates and returns the CONNECT Packet.
@@ -172,6 +163,11 @@ func NewCONNECT(opts *CONNECTOptions) (Packet, error) {
 	// Check the Client Identifier.
 	if opts.ClientID == "" {
 		return nil, ErrCONNECTClientIDEmpty
+	}
+
+	// Check the Will Topic and the Will Message.
+	if (opts.WillTopic != "" && opts.WillMessage == "") || (opts.WillTopic == "" && opts.WillMessage != "") {
+		return nil, ErrCOONECTWillTopicMessageEmpty
 	}
 
 	// Create the CONNECT Packet.
