@@ -11,7 +11,7 @@ const protocolLevelVersion3_1_1 = 0x04
 // Error values
 var (
 	ErrCONNECTClientIDEmpty         = errors.New("the Client Identifier is empty")
-	ErrCOONECTWillTopicMessageEmpty = errors.New("the Will Topic or Will Message is empty")
+	ErrCOONECTWillTopicMessageEmpty = errors.New("the Will Topic or the Will Message is empty")
 )
 
 // CONNECT represents the CONNECT Packet.
@@ -46,7 +46,7 @@ func (p *CONNECT) setFixedHeader() {
 	rl := encodeLength(uint(lenCONNECTVariableHeader + len(p.Payload)))
 
 	// Append the Remaining Length to the slice and set it to the Fixed Header.
-	p.FixedHeader = appendRemaininLength(b, rl)
+	p.FixedHeader = appendRemainingLength(b, rl)
 }
 
 // setVariableHeader sets the Variable header to the Packet.
@@ -54,7 +54,7 @@ func (p *CONNECT) setVariableHeader() {
 	// Create a byte slice holding the Variable header.
 	b := make([]byte, lenCONNECTVariableHeader)
 
-	// Set bytes.
+	// Set bytes to the slice.
 	b[0] = 0x00                      // Length MSB (0)
 	b[1] = 0x04                      // Length LSB (4)
 	b[2] = 0x4D                      // 'M'
@@ -64,12 +64,12 @@ func (p *CONNECT) setVariableHeader() {
 	b[6] = protocolLevelVersion3_1_1 // Protocol Level
 	b[7] = p.connectFlags()          // Connect Flags
 
-	// Set the Keep Alive.
+	// Set the Keep Alive to the slice.
 	keepAlive := encodeUint16(uint16(p.KeepAlive))
 	b[8] = keepAlive[0]
 	b[9] = keepAlive[1]
 
-	// Set the byte slice to the Variable header.
+	// Set the slice to the Variable header.
 	p.VariableHeader = b
 }
 

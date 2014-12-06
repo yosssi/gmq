@@ -1,8 +1,8 @@
 package packet
 
-// appendRemaininLength append the Remaining Length to the slice
+// appendRemainingLength append the Remaining Length to the slice
 // and returns it.
-func appendRemaininLength(b []byte, rl uint32) []byte {
+func appendRemainingLength(b []byte, rl uint32) []byte {
 	switch {
 	case rl&0xFF000000 > 0:
 		b = append(b, byte((rl&0xFF000000)>>24))
