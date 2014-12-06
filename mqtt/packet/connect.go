@@ -10,8 +10,7 @@ const protocolLevelVersion3_1_1 = 0x04
 
 // Error values
 var (
-	ErrCONNECTClientIDEmpty         = errors.New("the Client Identifier is empty")
-	ErrCOONECTWillTopicMessageEmpty = errors.New("the Will Topic or the Will Message is empty")
+	ErrCONNECTWillTopicMessageEmpty = errors.New("the Will Topic or the Will Message is empty")
 )
 
 // CONNECT represents the CONNECT Packet.
@@ -160,14 +159,9 @@ func NewCONNECT(opts *CONNECTOptions) (Packet, error) {
 	}
 	opts.Init()
 
-	// Check the Client Identifier.
-	if opts.ClientID == "" {
-		return nil, ErrCONNECTClientIDEmpty
-	}
-
 	// Check the Will Topic and the Will Message.
 	if (opts.WillTopic != "" && opts.WillMessage == "") || (opts.WillTopic == "" && opts.WillMessage != "") {
-		return nil, ErrCOONECTWillTopicMessageEmpty
+		return nil, ErrCONNECTWillTopicMessageEmpty
 	}
 
 	// Create the CONNECT Packet.
