@@ -237,3 +237,11 @@ func TestClient_Send_err(t *testing.T) {
 		}
 	}
 }
+
+func TestNew(t *testing.T) {
+	cli := New(nil)
+
+	if cli.ConnTimeout != DefaultConnTimeout {
+		t.Errorf("cli.ConnTimeout => %d, want => %d", cli.ConnTimeout, DefaultConnTimeout)
+	}
+}
