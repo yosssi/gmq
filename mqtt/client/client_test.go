@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"errors"
 	"io"
-	"io/ioutil"
 	"net"
 	"testing"
 
@@ -42,7 +41,7 @@ func TestClient_Connect_errAlreadyConnected(t *testing.T) {
 		Conn: &mqtt.Connection{},
 	}
 
-	if err := cli.Connect(nil, nil); err != ErrAlreadyConnected {
+	if err := cli.Connect(nil); err != ErrAlreadyConnected {
 		if err == nil {
 			t.Errorf("err => nil, want => %q", ErrAlreadyConnected)
 		} else {
@@ -54,66 +53,19 @@ func TestClient_Connect_errAlreadyConnected(t *testing.T) {
 func TestClient_Connect_optsNil(t *testing.T) {
 	cli := &Client{}
 
-	if err := cli.Connect(nil, nil); err == nil {
+	if err := cli.Connect(nil); err == nil {
 		t.Error("err => nil, want => not nil")
 	}
 }
 
-func TestClient_Connect_cleanSession(t *testing.T) {
+func TestClient_Connect(t *testing.T) {
 	cli := &Client{}
 
-	err := cli.Connect(
-		&ConnectOptions{
-			Address: testAddress,
-		},
-		nil,
-	)
-
+	err := cli.Connect(&ConnectOptions{
+		Address: testAddress,
+	})
 	if err != nil {
-		t.Errorf("err => %q, want => nil", err)
-	}
-}
-
-func TestClient_Connect_reuseSession(t *testing.T) {
-	var cleanSession bool
-
-	cli := &Client{
-		Sess: NewSession(&SessionOptions{
-			CleanSession: &cleanSession,
-		}),
-	}
-
-	err := cli.Connect(
-		&ConnectOptions{
-			Address: testAddress,
-		},
-		&packet.CONNECTOptions{
-			CleanSession: &cleanSession,
-		},
-	)
-
-	if err != nil {
-		t.Errorf("err => %q, want => nil", err)
-	}
-}
-
-func TestClient_Connect_newCONNECTErr(t *testing.T) {
-	cli := &Client{}
-
-	err := cli.Connect(
-		&ConnectOptions{
-			Address: testAddress,
-		},
-		&packet.CONNECTOptions{
-			WillTopic: "willTopic",
-		},
-	)
-	if err != packet.ErrCONNECTWillTopicMessageEmpty {
-		if err == nil {
-			t.Errorf("err => nil, want => %q", packet.ErrCONNECTWillTopicMessageEmpty)
-		} else {
-			t.Errorf("err => %q, want => %q", err, packet.ErrCONNECTWillTopicMessageEmpty)
-		}
+		t.Error("err => %q, want => nil", err)
 	}
 }
 
@@ -129,26 +81,9 @@ func TestClient_Disconnect_errNotYetConnected(t *testing.T) {
 	}
 }
 
-func TestClient_Disconnect_sendErr(t *testing.T) {
-	cli := &Client{
-		Conn: &mqtt.Connection{
-			W: bufio.NewWriter(&errWriter{}),
-		},
-	}
-
-	if err := cli.Disconnect(); err != errTest {
-		if err == nil {
-			t.Errorf("err => nil, want => %q", errTest)
-		} else {
-			t.Errorf("err => %q, want => %q", err, errTest)
-		}
-	}
-}
-
 func TestClient_Disconnect_closeErr(t *testing.T) {
 	cli := &Client{
 		Conn: &mqtt.Connection{
-			W:    bufio.NewWriter(ioutil.Discard),
 			Conn: &errConn{},
 		},
 	}
@@ -163,13 +98,14 @@ func TestClient_Disconnect_closeErr(t *testing.T) {
 }
 
 func TestClient_Disconnect_cleanSession(t *testing.T) {
-	cli := &Client{}
+	cli := &Client{
+		Sess: NewSession(nil),
+	}
 
 	err := cli.Connect(
 		&ConnectOptions{
 			Address: testAddress,
 		},
-		nil,
 	)
 	if err != nil {
 		t.Errorf("err => %q, want => nil", err)
@@ -180,12 +116,122 @@ func TestClient_Disconnect_cleanSession(t *testing.T) {
 	}
 }
 
-func TestClient_Send(t *testing.T) {
+func TestClient_SendCONNECT_errNotYetConnected(t *testing.T) {
+	cli := &Client{}
+
+	if err := cli.SendCONNECT(nil); err != ErrNotYetConnected {
+		if err == nil {
+			t.Errorf("err => nil, want => %q", ErrNotYetConnected)
+		} else {
+			t.Errorf("err => %q, want => %q", err, ErrNotYetConnected)
+		}
+	}
+}
+
+func TestClient_SendCONNECT_optsNil(t *testing.T) {
+	cli := &Client{}
+
+	err := cli.Connect(
+		&ConnectOptions{
+			Address: testAddress,
+		},
+	)
+	if err != nil {
+		t.Error("err => %q, want => nil", err)
+	}
+
+	if err := cli.SendCONNECT(nil); err != nil {
+		t.Errorf("err => %q, want => nil", err)
+	}
+}
+
+func TestClient_SendCONNECT_reuseSession(t *testing.T) {
+	var cleanSession bool
+
+	cli := &Client{
+		Sess: NewSession(&SessionOptions{
+			CleanSession: &cleanSession,
+		}),
+	}
+
+	err := cli.Connect(
+		&ConnectOptions{
+			Address: testAddress,
+		},
+	)
+
+	if err != nil {
+		t.Error("err => %q, want => nil", err)
+	}
+
+	err = cli.SendCONNECT(&packet.CONNECTOptions{
+		CleanSession: &cleanSession,
+	})
+	if err != nil {
+		t.Errorf("err => %q, want => nil", err)
+	}
+}
+
+func TestClient_Connect_newCONNECTErr(t *testing.T) {
+	cli := &Client{}
+
+	err := cli.Connect(
+		&ConnectOptions{
+			Address: testAddress,
+		},
+	)
+	if err != nil {
+		t.Error("err => %q, want => nil", err)
+	}
+
+	err = cli.SendCONNECT(&packet.CONNECTOptions{
+		WillTopic: "willTopic",
+	})
+	if err != packet.ErrCONNECTWillTopicMessageEmpty {
+		if err == nil {
+			t.Errorf("err => nil, want => %q", packet.ErrCONNECTWillTopicMessageEmpty)
+		} else {
+			t.Errorf("err => %q, want => %q", err, packet.ErrCONNECTWillTopicMessageEmpty)
+		}
+	}
+}
+
+func TestClient_SendDISCONNECT_errNotYetConnected(t *testing.T) {
+	cli := &Client{}
+
+	if err := cli.SendDISCONNECT(); err != ErrNotYetConnected {
+		if err == nil {
+			t.Errorf("err => nil, want => %q", ErrNotYetConnected)
+		} else {
+			t.Errorf("err => %q, want => %q", err, ErrNotYetConnected)
+		}
+	}
+}
+
+func TestClient_SendDISCONNECT(t *testing.T) {
+	cli := &Client{}
+
+	err := cli.Connect(
+		&ConnectOptions{
+			Address: testAddress,
+		},
+	)
+
+	if err != nil {
+		t.Errorf("err => %q, want => nil", err)
+	}
+
+	if err := cli.SendDISCONNECT(); err != nil {
+		t.Errorf("err => %q, want => nil", err)
+	}
+}
+
+func TestClient_Send_err(t *testing.T) {
 	cli := &Client{
 		Conn: &mqtt.Connection{},
 	}
 
-	if err := cli.Send(&errPacket{}); err != errTest {
+	if err := cli.send(&errPacket{}); err != errTest {
 		if err == nil {
 			t.Errorf("err => nil, want => %q", errTest)
 		} else {
@@ -201,8 +247,12 @@ func TestReceive(t *testing.T) {
 		&ConnectOptions{
 			Address: testAddress,
 		},
-		nil,
 	)
+	if err != nil {
+		t.Errorf("err => %q, want => nil", err)
+	}
+
+	err = cli.SendCONNECT(nil)
 	if err != nil {
 		t.Errorf("err => %q, want => nil", err)
 	}
