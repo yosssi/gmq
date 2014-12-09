@@ -39,13 +39,36 @@ func main() {
 
 InputLoop:
 	for printHeader(); scanner.Scan(); printHeader() {
+		// Get a string from the scanner.
 		s := strings.TrimSpace(scanner.Text())
 
+		// Skip the remaining processes if the string is zero value.
 		if s == "" {
 			continue
 		}
 
-		fmt.Println(s)
+		// Split the string into tokens.
+		tokens := strings.Split(s, " ")
+
+		// Get a command name from the tokens.
+		cmdName := tokens[0]
+
+		// Get command arguments from the tokens.
+		var cmdArgs []string
+		for _, t := range tokens[1:] {
+			// Trim the token
+			t = strings.TrimSpace(t)
+
+			// Skip the remaining processes if the token is zero value.
+			if t == "" {
+				continue
+			}
+
+			// Set the token to the command arguments.
+			cmdArgs = append(cmdArgs, t)
+		}
+
+		fmt.Println(cmdName, cmdArgs, len(cmdArgs))
 
 		continue InputLoop
 	}
