@@ -2,7 +2,6 @@ package client
 
 import (
 	"errors"
-	"time"
 
 	"github.com/yosssi/gmq/mqtt"
 	"github.com/yosssi/gmq/mqtt/packet"
@@ -20,9 +19,6 @@ type Client struct {
 	Conn *mqtt.Connection
 	// Sess is the Session.
 	Sess *Session
-	// ConnTimeout represents the timeout of the Network Connection.
-	// 0 means that there is no timeout.
-	ConnTimeout time.Duration
 }
 
 // Connect tries to establish a Network Connection to the Server and
@@ -127,21 +123,4 @@ func (cli *Client) send(p packet.Packet) error {
 	}
 
 	return cli.Conn.W.Flush()
-}
-
-// New creates and returns a Client.
-func New(opts *Options) *Client {
-	// Initialize the options.
-	if opts == nil {
-		opts = &Options{}
-	}
-	opts.Init()
-
-	// Create a Client.
-	cli := &Client{
-		ConnTimeout: *opts.ConnTimeout,
-	}
-
-	// Return the Client.
-	return cli
 }
