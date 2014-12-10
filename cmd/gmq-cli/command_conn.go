@@ -29,6 +29,16 @@ type commandConn struct {
 // run tries to establish a Network Connection to the Server and
 // sends a CONNECT Packet to the Server.
 func (cmd *commandConn) run() error {
+	// Try to establish a Network Connection to the Server.
+	if err := cmd.cli.Connect(cmd.opts); err != nil {
+		return err
+	}
+
+	// Send a CONNECT Packet to the Server.
+	if err := cmd.cli.SendCONNECT(cmd.connectOpts); err != nil {
+		return err
+	}
+
 	return nil
 }
 
