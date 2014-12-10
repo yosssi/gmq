@@ -22,8 +22,7 @@ type Client struct {
 	sess *Session
 }
 
-// Connect tries to establish a Network Connection to the Server and
-// sends a CONNECT Packet to the Server.
+// Connect tries to establish a Network Connection to the Server.
 func (cli *Client) Connect(opts *ConnectOptions) error {
 	// Return an error if the Client has already connected to the Server.
 	if cli.conn != nil {

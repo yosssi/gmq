@@ -8,12 +8,14 @@ import (
 
 // Command names
 const (
+	cmdNameConn = "conn"
 	cmdNameHelp = "help"
 )
 
 // Error values
 var (
 	errInvalidCmdName = errors.New("invalid command name")
+	errCmdArgsParse   = errors.New("command arguments parse error")
 )
 
 // command represents a command of GMQ Client.
@@ -26,6 +28,8 @@ func newCommand(cmdName string, cmdArgs []string, cli *client.Client) (command, 
 	switch cmdName {
 	case cmdNameHelp:
 		return newCommandHelp(), nil
+	case cmdNameConn:
+		return newCommandConn(cmdArgs, cli)
 	}
 
 	return nil, errInvalidCmdName

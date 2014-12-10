@@ -52,26 +52,7 @@ func main() {
 			continue
 		}
 
-		// Split the string into tokens.
-		tokens := strings.Split(s, " ")
-
-		// Get a command name from the tokens.
-		cmdName := tokens[0]
-
-		// Get command arguments from the tokens.
-		var cmdArgs []string
-		for _, t := range tokens[1:] {
-			// Trim the token
-			t = strings.TrimSpace(t)
-
-			// Skip the remaining processes if the token is zero value.
-			if t == "" {
-				continue
-			}
-
-			// Set the token to the command arguments.
-			cmdArgs = append(cmdArgs, t)
-		}
+		cmdName, cmdArgs := cmdNameArgs(s)
 
 		// Create a command.
 		cmd, err := newCommand(cmdName, cmdArgs, cli)
@@ -100,10 +81,42 @@ func printHeader() {
 
 // printError prints the error to standard error.
 func printError(err error) {
+	// Do nothing if the error is errCmdArgsParse.
+	if err == errCmdArgsParse {
+		return
+	}
+
 	fmt.Fprintf(os.Stderr, "%s.\n", err)
 
+	// Print the help of the GMQ Client commands if the error is errInvalidCmdName.
 	if err == errInvalidCmdName {
 		fmt.Println()
 		printHelp()
 	}
+}
+
+// Extract the command name and the command arguments from the parameter string.
+func cmdNameArgs(s string) (string, []string) {
+	// Split the string into tokens.
+	tokens := strings.Split(s, " ")
+
+	// Get a command name from the tokens.
+	cmdName := tokens[0]
+
+	// Get command arguments from the tokens.
+	var cmdArgs []string
+	for _, t := range tokens[1:] {
+		// Trim the token
+		t = strings.TrimSpace(t)
+
+		// Skip the remaining processes if the token is zero value.
+		if t == "" {
+			continue
+		}
+
+		// Set the token to the command arguments.
+		cmdArgs = append(cmdArgs, t)
+	}
+
+	return cmdName, cmdArgs
 }
