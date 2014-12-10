@@ -7,6 +7,8 @@ import (
 	"io"
 	"os"
 	"strings"
+
+	"github.com/yosssi/gmq/mqtt/client"
 )
 
 // cmdHeader is the command-line input header.
@@ -35,9 +37,12 @@ func main() {
 		return
 	}
 
+	// Create an MQTT client.
+	cli := client.New(nil)
+
+	// Create a scanner which reads lines from standard input.
 	scanner := bufio.NewScanner(stdin)
 
-InputLoop:
 	for printHeader(); scanner.Scan(); printHeader() {
 		// Get a string from the scanner.
 		s := strings.TrimSpace(scanner.Text())
@@ -68,9 +73,18 @@ InputLoop:
 			cmdArgs = append(cmdArgs, t)
 		}
 
-		fmt.Println(cmdName, cmdArgs, len(cmdArgs))
+		// Create a command.
+		cmd, err := newCommand(cmdName, cmdArgs, cli)
+		if err != nil {
+			printError(err)
+			continue
+		}
 
-		continue InputLoop
+		// Run the command.
+		if err := cmd.run(); err != nil {
+			printError(err)
+			continue
+		}
 	}
 }
 
@@ -82,4 +96,14 @@ func printVersion() {
 // printHeader prints the command-line input header to standard output.
 func printHeader() {
 	os.Stdout.WriteString(cmdHeader)
+}
+
+// printError prints the error to standard error.
+func printError(err error) {
+	fmt.Fprintf(os.Stderr, "%s.\n", err)
+
+	if err == errInvalidCmdName {
+		fmt.Println()
+		printHelp()
+	}
 }

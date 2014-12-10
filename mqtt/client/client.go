@@ -181,3 +181,8 @@ func (cli *Client) send(p packet.Packet) error {
 
 	return cli.conn.W.Flush()
 }
+
+// New creates and returns a Client.
+func New(_ *Options) *Client {
+	return &Client{}
+}

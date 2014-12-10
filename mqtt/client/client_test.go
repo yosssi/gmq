@@ -370,3 +370,11 @@ func TestClient_Send_err(t *testing.T) {
 		}
 	}
 }
+
+func TestNew(t *testing.T) {
+	cli := New(nil)
+
+	if cli == nil {
+		t.Error("cli => nil, want => not nil")
+	}
+}
