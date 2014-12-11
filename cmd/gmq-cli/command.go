@@ -1,16 +1,15 @@
 package main
 
-import (
-	"errors"
-
-	"github.com/yosssi/gmq/mqtt/client"
-)
+import "errors"
 
 // Command names
 const (
 	cmdNameConn = "conn"
 	cmdNameHelp = "help"
 )
+
+// Multiple error string format
+const strErrMulti = "error (%q) occurred while handling the other error (%q)"
 
 // Error values
 var (
@@ -24,12 +23,12 @@ type command interface {
 }
 
 // newCommand creates and returns a command.
-func newCommand(cmdName string, cmdArgs []string, cli *client.Client) (command, error) {
+func newCommand(cmdName string, cmdArgs []string, ctx *context) (command, error) {
 	switch cmdName {
 	case cmdNameHelp:
 		return newCommandHelp(), nil
 	case cmdNameConn:
-		return newCommandConn(cmdArgs, cli)
+		return newCommandConn(cmdArgs, ctx)
 	}
 
 	return nil, errInvalidCmdName

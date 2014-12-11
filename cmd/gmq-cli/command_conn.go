@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"strconv"
 
@@ -21,7 +22,7 @@ var hostname, _ = os.Hostname()
 
 // commandConn represents a conn command.
 type commandConn struct {
-	cli         *client.Client
+	ctx         *context
 	opts        *client.ConnectOptions
 	connectOpts *packet.CONNECTOptions
 }
@@ -30,12 +31,17 @@ type commandConn struct {
 // sends a CONNECT Packet to the Server.
 func (cmd *commandConn) run() error {
 	// Try to establish a Network Connection to the Server.
-	if err := cmd.cli.Connect(cmd.opts); err != nil {
+	if err := cmd.ctx.cli.Connect(cmd.opts); err != nil {
 		return err
 	}
 
 	// Send a CONNECT Packet to the Server.
-	if err := cmd.cli.SendCONNECT(cmd.connectOpts); err != nil {
+	if err := cmd.ctx.cli.SendCONNECT(cmd.connectOpts); err != nil {
+		// Disconnect the Network Connection.
+		if anotherErr := cmd.ctx.cli.Disconnect(); anotherErr != nil {
+			return fmt.Errorf(strErrMulti, anotherErr, err)
+		}
+
 		return err
 	}
 
@@ -43,7 +49,7 @@ func (cmd *commandConn) run() error {
 }
 
 // newCommandConn creates and returns a conn command.
-func newCommandConn(args []string, cli *client.Client) (*commandConn, error) {
+func newCommandConn(args []string, ctx *context) (*commandConn, error) {
 	// Create a flag set.
 	var flg flag.FlagSet
 
@@ -68,7 +74,7 @@ func newCommandConn(args []string, cli *client.Client) (*commandConn, error) {
 
 	// Create a conn command.
 	cmd := &commandConn{
-		cli: cli,
+		ctx: ctx,
 		opts: &client.ConnectOptions{
 			Network: *network,
 			Address: *host + ":" + strconv.Itoa(int(*port)),
