@@ -8,9 +8,6 @@ const (
 	cmdNameHelp = "help"
 )
 
-// Multiple error string format
-const strErrMulti = "error (%q) occurred while handling the other error (%q)"
-
 // Error values
 var (
 	errInvalidCmdName = errors.New("invalid command name")

@@ -2,11 +2,15 @@ package client
 
 import (
 	"errors"
+	"fmt"
 	"io"
 
 	"github.com/yosssi/gmq/mqtt"
 	"github.com/yosssi/gmq/mqtt/packet"
 )
+
+// Multiple error string format
+const strErrMulti = "error (%q) occurred while handling the other error (%q)"
 
 // Error values
 var (
@@ -22,102 +26,52 @@ type Client struct {
 	sess *Session
 }
 
-// Connect tries to establish a Network Connection to the Server.
-func (cli *Client) Connect(opts *ConnectOptions) error {
-	// Return an error if the Client has already connected to the Server.
-	if cli.conn != nil {
-		return ErrAlreadyConnected
-	}
-
-	// Initialize the options.
-	if opts == nil {
-		opts = &ConnectOptions{}
-	}
-	opts.Init()
-
-	// Connect to the Server and create a Network Connection.
-	conn, err := mqtt.NewConnection(opts.Network, opts.Address)
-	if err != nil {
+// Connect tries to establish a Network Connection to the Server and
+// sends a CONNECT Packet to the Server.
+func (cli *Client) Connect(network, address string, opts *packet.CONNECTOptions) error {
+	// Try to establish a Network Connection to the Server.
+	if err := cli.establish(network, address); err != nil {
 		return err
 	}
 
-	// Set the Network Connection to the Client.
-	cli.conn = conn
+	// Send a CONNECT Packet to the Server.
+	if err := cli.sendCONNECT(opts); err != nil {
+		if anotherErr := cli.close(); anotherErr != nil {
+			return fmt.Errorf(strErrMulti, anotherErr, err)
+		}
+	}
 
 	return nil
 }
 
-// Disconnect closes the Network Connection.
+// Disconnect sends a DISCONNECT Packet to the Server and
+// closes the Network Connection.
 func (cli *Client) Disconnect() error {
 	// Return an error if the Client has not yet connected to the Server.
 	if cli.conn == nil {
 		return ErrNotYetConnected
 	}
 
-	// Close the Network Connection.
-	if err := cli.conn.Close(); err != nil {
+	// Send a DISCONNECT Packet to the Server.
+	if err := cli.sendDISCONNECT(); err != nil {
 		return err
 	}
 
-	// Clear the Network Connection of the Client.
-	cli.conn = nil
-
-	// Clear the Session if the CleanSession is true.
-	if cli.sess != nil && cli.sess.CleanSession {
-		cli.sess = nil
+	// Close the Network Connection.
+	if err := cli.close(); err != nil {
+		return err
 	}
 
 	return nil
 }
 
-// SendCONNECT sends a CONNECT Packet to the Server.
-func (cli *Client) SendCONNECT(opts *packet.CONNECTOptions) error {
-	// Return an error if the Client has not yet connected to the Server.
-	if cli.conn == nil {
-		return ErrNotYetConnected
-	}
-
-	// Initialize the options.
-	if opts == nil {
-		opts = &packet.CONNECTOptions{}
-	}
-	opts.Init()
-
-	// Create a Session or reuse the current Session.
-	if *opts.CleanSession || cli.sess == nil {
-		// Craete a Session and set it to the Client.
-		cli.sess = NewSession(&SessionOptions{
-			CleanSession: opts.CleanSession,
-			ClientID:     opts.ClientID,
-		})
-	} else {
-		// Reuse the Session and set its Client Identifier to the Packet options.
-		opts.ClientID = cli.sess.ClientID
-	}
-
-	// Create a CONNECT Packet.
-	p, err := packet.NewCONNECT(opts)
-	if err != nil {
-		return err
-	}
-
-	// Send the CONNECT Packet to the Server.
-	return cli.send(p)
-}
-
-// SendDISCONNECT sends a DISCONNECT Packet to the Server.
-func (cli *Client) SendDISCONNECT() error {
-	// Return an error if the Client has not yet connected to the Server.
-	if cli.conn == nil {
-		return ErrNotYetConnected
-	}
-
-	// Send a DISCONNECT Packet to the Server.
-	return cli.send(packet.NewDISCONNECT())
-}
-
 // Receive receives an MQTT Control Packet from the Server.
 func (cli *Client) Receive() (byte, packet.Packet, error) {
+	// Return an error if the Client has not yet connected to the Server.
+	if cli.conn == nil {
+		return 0x00, nil, ErrNotYetConnected
+	}
+
 	// Get the first byte of the Packet.
 	b, err := cli.conn.R.ReadByte()
 	if err != nil {
@@ -172,8 +126,101 @@ func (cli *Client) Receive() (byte, packet.Packet, error) {
 	return ptype, p, nil
 }
 
+// establish tries to establish a Network Connection to the Server.
+func (cli *Client) establish(network, address string) error {
+	// Return an error if the Client has already connected to the Server.
+	if cli.conn != nil {
+		return ErrAlreadyConnected
+	}
+
+	// Connect to the Server and create a Network Connection.
+	conn, err := mqtt.NewConnection(network, address)
+	if err != nil {
+		return err
+	}
+
+	// Set the Network Connection to the Client.
+	cli.conn = conn
+
+	return nil
+}
+
+// close closes the Network Connection.
+func (cli *Client) close() error {
+	// Return an error if the Client has not yet connected to the Server.
+	if cli.conn == nil {
+		return ErrNotYetConnected
+	}
+
+	// Close the Network Connection.
+	if err := cli.conn.Close(); err != nil {
+		return err
+	}
+
+	// Clear the Network Connection of the Client.
+	cli.conn = nil
+
+	// Clear the Session if the CleanSession is true.
+	if cli.sess != nil && cli.sess.CleanSession {
+		cli.sess = nil
+	}
+
+	return nil
+}
+
+// SendCONNECT sends a CONNECT Packet to the Server.
+func (cli *Client) sendCONNECT(opts *packet.CONNECTOptions) error {
+	// Return an error if the Client has not yet connected to the Server.
+	if cli.conn == nil {
+		return ErrNotYetConnected
+	}
+
+	// Initialize the options.
+	if opts == nil {
+		opts = &packet.CONNECTOptions{}
+	}
+	opts.Init()
+
+	// Create a Session or reuse the current Session.
+	if *opts.CleanSession || cli.sess == nil {
+		// Craete a Session and set it to the Client.
+		cli.sess = NewSession(&SessionOptions{
+			CleanSession: opts.CleanSession,
+			ClientID:     opts.ClientID,
+		})
+	} else {
+		// Reuse the Session and set its Client Identifier to the Packet options.
+		opts.ClientID = cli.sess.ClientID
+	}
+
+	// Create a CONNECT Packet.
+	p, err := packet.NewCONNECT(opts)
+	if err != nil {
+		return err
+	}
+
+	// Send the CONNECT Packet to the Server.
+	return cli.send(p)
+}
+
+// SendDISCONNECT sends a DISCONNECT Packet to the Server.
+func (cli *Client) sendDISCONNECT() error {
+	// Return an error if the Client has not yet connected to the Server.
+	if cli.conn == nil {
+		return ErrNotYetConnected
+	}
+
+	// Send a DISCONNECT Packet to the Server.
+	return cli.send(packet.NewDISCONNECT())
+}
+
 // send sends an MQTT Control Packet to the Server.
 func (cli *Client) send(p packet.Packet) error {
+	// Return an error if the Client has not yet connected to the Server.
+	if cli.conn == nil {
+		return ErrNotYetConnected
+	}
+
 	if _, err := p.WriteTo(cli.conn.W); err != nil {
 		return err
 	}

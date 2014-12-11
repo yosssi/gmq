@@ -7,14 +7,14 @@ import (
 	"strconv"
 
 	"github.com/yosssi/gmq/mqtt"
-	"github.com/yosssi/gmq/mqtt/client"
 	"github.com/yosssi/gmq/mqtt/packet"
 )
 
 // Default values
 const (
-	defaultHost      = "localhost"
-	defaultPort uint = 1883
+	defaultNetwork      = "tcp"
+	defaultHost         = "localhost"
+	defaultPort    uint = 1883
 )
 
 // Hostname
@@ -23,25 +23,17 @@ var hostname, _ = os.Hostname()
 // commandConn represents a conn command.
 type commandConn struct {
 	ctx         *context
-	opts        *client.ConnectOptions
+	network     string
+	address     string
 	connectOpts *packet.CONNECTOptions
 }
 
 // run tries to establish a Network Connection to the Server and
 // sends a CONNECT Packet to the Server.
 func (cmd *commandConn) run() error {
-	// Try to establish a Network Connection to the Server.
-	if err := cmd.ctx.cli.Connect(cmd.opts); err != nil {
-		return err
-	}
-
-	// Send a CONNECT Packet to the Server.
-	if err := cmd.ctx.cli.SendCONNECT(cmd.connectOpts); err != nil {
-		// Disconnect the Network Connection.
-		if anotherErr := cmd.ctx.cli.Disconnect(); anotherErr != nil {
-			return fmt.Errorf(strErrMulti, anotherErr, err)
-		}
-
+	// Try to establish a Network Connection to the Server and
+	// send a CONNECT Packet to the Server.
+	if err := cmd.ctx.cli.Connect(cmd.network, cmd.address, cmd.connectOpts); err != nil {
 		return err
 	}
 
@@ -66,7 +58,7 @@ func newCommandConn(args []string, ctx *context) (*commandConn, error) {
 	var flg flag.FlagSet
 
 	// Define the flags.
-	network := flg.String("n", client.DefaultNetwork, "network on which the Client connects to the Server")
+	network := flg.String("n", defaultNetwork, "network on which the Client connects to the Server")
 	host := flg.String("h", defaultHost, "host name of the Server to connect to")
 	port := flg.Uint("p", defaultPort, "port number of the Server to connect to")
 	clientID := flg.String("i", hostname, "Client identifier for the Client")
@@ -86,11 +78,9 @@ func newCommandConn(args []string, ctx *context) (*commandConn, error) {
 
 	// Create a conn command.
 	cmd := &commandConn{
-		ctx: ctx,
-		opts: &client.ConnectOptions{
-			Network: *network,
-			Address: *host + ":" + strconv.Itoa(int(*port)),
-		},
+		ctx:     ctx,
+		network: *network,
+		address: *host + ":" + strconv.Itoa(int(*port)),
 		connectOpts: &packet.CONNECTOptions{
 			ClientID:     *clientID,
 			CleanSession: cleanSession,
