@@ -45,6 +45,18 @@ func (cmd *commandConn) run() error {
 		return err
 	}
 
+	// Launch a goroutine which sends a Packet to the Server.
+
+	// Launch a goroutine which receives a Packet from the Server.
+
+	// Launch a goroutine which reads data from the Network Connection.
+	go func() {
+		for {
+			ptype, p, err := cmd.ctx.cli.Receive()
+			fmt.Println(ptype, p, err)
+		}
+	}()
+
 	return nil
 }
 
