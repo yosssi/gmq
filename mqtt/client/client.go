@@ -36,6 +36,7 @@ func (cli *Client) Connect(network, address string, opts *packet.CONNECTOptions)
 
 	// Send a CONNECT Packet to the Server.
 	if err := cli.sendCONNECT(opts); err != nil {
+		// Close the Network Connection to the Server.
 		if anotherErr := cli.close(); anotherErr != nil {
 			return fmt.Errorf(strErrMulti, anotherErr, err)
 		}
@@ -88,6 +89,7 @@ func (cli *Client) Receive() (byte, packet.Packet, error) {
 	var mp uint32 = 1 // multiplier
 	var rl uint32     // the Remaining Length
 	for {
+		// Get the next byte of the Packet.
 		b, err = cli.conn.R.ReadByte()
 		if err != nil {
 			return 0x00, nil, err
@@ -108,6 +110,7 @@ func (cli *Client) Receive() (byte, packet.Packet, error) {
 	remaining := make([]byte, rl)
 
 	if rl > 0 {
+		// Get the remaining of the Packet.
 		if _, err = io.ReadFull(cli.conn.R, remaining); err != nil {
 			return 0x00, nil, err
 		}
@@ -123,6 +126,7 @@ func (cli *Client) Receive() (byte, packet.Packet, error) {
 		}
 	}
 
+	// Ruturn the MQTT Control Packet Type and the Packet.
 	return ptype, p, nil
 }
 
@@ -221,10 +225,12 @@ func (cli *Client) send(p packet.Packet) error {
 		return ErrNotYetConnected
 	}
 
+	// Write the Packet to the buffered writer.
 	if _, err := p.WriteTo(cli.conn.W); err != nil {
 		return err
 	}
 
+	// Flush the buffered writer.
 	return cli.conn.W.Flush()
 }
 
