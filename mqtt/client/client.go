@@ -18,6 +18,22 @@ var (
 	ErrNotYetConnected  = errors.New("the Client has not yet connected to the Server")
 )
 
+// closeConn calls the Client's close method.
+// This global variable is defined to make writing tests easy and
+// another function value will be assigned to this global variable
+// while testing.
+var closeConn = func(cli *Client) error {
+	return cli.close()
+}
+
+// sendDISCONNECT calls the Client's sendDISCONNECT method.
+// This global variable is defined to make writing tests easy and
+// another function value will be assigned to this global variable
+// while testing.
+var sendDISCONNECT = func(cli *Client) error {
+	return cli.sendDISCONNECT()
+}
+
 // Client represents a Client.
 type Client struct {
 	// conn is the Network Connection.
@@ -37,9 +53,11 @@ func (cli *Client) Connect(network, address string, _ *ConnectOptions, packetOpt
 	// Send a CONNECT Packet to the Server.
 	if err := cli.sendCONNECT(packetOpts); err != nil {
 		// Close the Network Connection to the Server.
-		if anotherErr := cli.close(); anotherErr != nil {
+		if anotherErr := closeConn(cli); anotherErr != nil {
 			return fmt.Errorf(strErrMulti, anotherErr, err)
 		}
+
+		return err
 	}
 
 	return nil
@@ -54,12 +72,12 @@ func (cli *Client) Disconnect(_ *DisconnectOptions) error {
 	}
 
 	// Send a DISCONNECT Packet to the Server.
-	if err := cli.sendDISCONNECT(); err != nil {
+	if err := sendDISCONNECT(cli); err != nil {
 		return err
 	}
 
 	// Close the Network Connection.
-	if err := cli.close(); err != nil {
+	if err := closeConn(cli); err != nil {
 		return err
 	}
 

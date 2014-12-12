@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"testing"
@@ -28,6 +29,158 @@ type errPacket struct{}
 
 func (p *errPacket) WriteTo(_ io.Writer) (int64, error) {
 	return 0, errTest
+}
+
+func TestClient_Connect_errEstablish(t *testing.T) {
+	cli := &Client{
+		conn: &mqtt.Connection{},
+	}
+
+	if err := cli.Connect("", "", nil, nil); err != ErrAlreadyConnected {
+		if err == nil {
+			t.Errorf("err => nil, want => %q", ErrAlreadyConnected)
+		} else {
+			t.Errorf("err => %q, want => %q", err, ErrAlreadyConnected)
+		}
+	}
+}
+
+func TestClient_Connect_errSendCONNECT(t *testing.T) {
+	cli := &Client{}
+
+	err := cli.Connect(
+		"tcp",
+		testAddress,
+		nil,
+		&packet.CONNECTOptions{
+			WillTopic: "willTopic",
+		},
+	)
+
+	if err != packet.ErrCONNECTWillTopicMessageEmpty {
+		if err == nil {
+			t.Errorf("err => nil, want => %q", packet.ErrCONNECTWillTopicMessageEmpty)
+
+		} else {
+			t.Errorf("err => %q, want => %q", err, packet.ErrCONNECTWillTopicMessageEmpty)
+		}
+	}
+}
+
+func TestClient_Connect_errCloseConn(t *testing.T) {
+	defer func(closeConnBak func(*Client) error) {
+		closeConn = closeConnBak
+	}(closeConn)
+
+	closeConn = func(_ *Client) error {
+		return errTest
+	}
+
+	cli := &Client{}
+
+	err := cli.Connect(
+		"tcp",
+		testAddress,
+		nil,
+		&packet.CONNECTOptions{
+			WillTopic: "willTopic",
+		},
+	)
+
+	want := fmt.Sprintf(strErrMulti, errTest, packet.ErrCONNECTWillTopicMessageEmpty)
+
+	if err == nil {
+		t.Errorf("err => nil, want => %q", want)
+		return
+	}
+
+	if err.Error() != want {
+		t.Errorf("err => %q, want => %q", err, want)
+	}
+}
+
+func TestClient_Connect(t *testing.T) {
+	cli := &Client{}
+
+	err := cli.Connect(
+		"tcp",
+		testAddress,
+		nil,
+		nil,
+	)
+
+	if err != nil {
+		t.Errorf("err => %q, want => nil", err)
+	}
+}
+
+func TestClient_Disconnect_errNotYetConnected(t *testing.T) {
+	cli := &Client{}
+
+	if err := cli.Disconnect(nil); err != ErrNotYetConnected {
+		if err == nil {
+			t.Errorf("err => nil, want => %q", ErrNotYetConnected)
+		} else {
+			t.Errorf("err => %q, want => %q", err, ErrNotYetConnected)
+		}
+	}
+}
+
+func TestClient_Disconnect_errSendDISCONNECT(t *testing.T) {
+	defer func(sendDISCONNECTBak func(*Client) error) {
+		sendDISCONNECT = sendDISCONNECTBak
+	}(sendDISCONNECT)
+
+	sendDISCONNECT = func(_ *Client) error {
+		return errTest
+	}
+
+	cli := &Client{}
+
+	if err := cli.Connect("tcp", testAddress, nil, nil); err != nil {
+		t.Errorf("err => %q, want => nil", err)
+		return
+	}
+
+	if err := cli.Disconnect(nil); err != errTest {
+		if err == nil {
+			t.Errorf("err => nil, want => %q", errTest)
+		} else {
+			t.Errorf("err => %q, want => %q", err, errTest)
+		}
+	}
+}
+
+func TestClient_Disconnect_errCloseConn(t *testing.T) {
+	defer func(closeConnBak func(*Client) error) {
+		closeConn = closeConnBak
+	}(closeConn)
+
+	closeConn = func(_ *Client) error {
+		return errTest
+	}
+
+	cli := &Client{}
+
+	err := cli.Connect(
+		"tcp",
+		testAddress,
+		nil,
+		nil,
+	)
+
+	if err != nil {
+		t.Errorf("err => %q, want => nil", err)
+		return
+	}
+
+	if err := cli.Disconnect(nil); err != errTest {
+		if err == nil {
+			t.Errorf("err => nil, want => %q", errTest)
+		} else {
+			t.Errorf("err => %q, want => %q", err, errTest)
+		}
+	}
 }
 
 func TestClient_Receive(t *testing.T) {
