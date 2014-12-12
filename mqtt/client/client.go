@@ -28,14 +28,14 @@ type Client struct {
 
 // Connect tries to establish a Network Connection to the Server and
 // sends a CONNECT Packet to the Server.
-func (cli *Client) Connect(network, address string, opts *packet.CONNECTOptions) error {
+func (cli *Client) Connect(network, address string, _ *ConnectOptions, packetOpts *packet.CONNECTOptions) error {
 	// Try to establish a Network Connection to the Server.
 	if err := cli.establish(network, address); err != nil {
 		return err
 	}
 
 	// Send a CONNECT Packet to the Server.
-	if err := cli.sendCONNECT(opts); err != nil {
+	if err := cli.sendCONNECT(packetOpts); err != nil {
 		// Close the Network Connection to the Server.
 		if anotherErr := cli.close(); anotherErr != nil {
 			return fmt.Errorf(strErrMulti, anotherErr, err)
@@ -47,7 +47,7 @@ func (cli *Client) Connect(network, address string, opts *packet.CONNECTOptions)
 
 // Disconnect sends a DISCONNECT Packet to the Server and
 // closes the Network Connection.
-func (cli *Client) Disconnect() error {
+func (cli *Client) Disconnect(_ *DisconnectOptions) error {
 	// Return an error if the Client has not yet connected to the Server.
 	if cli.conn == nil {
 		return ErrNotYetConnected

@@ -48,7 +48,7 @@ func TestClient_Receive(t *testing.T) {
 		return
 	}
 
-	if err := cli.Disconnect(); err != nil {
+	if err := cli.Disconnect(nil); err != nil {
 		t.Errorf("err => %q, want => nil", err)
 	}
 }
@@ -210,7 +210,7 @@ func TestClient_close_cleanSession(t *testing.T) {
 		return
 	}
 
-	if err := cli.Disconnect(); err != nil {
+	if err := cli.Disconnect(nil); err != nil {
 		t.Errorf("err => %q, want => nil", err)
 	}
 }
