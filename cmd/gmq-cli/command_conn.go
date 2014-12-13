@@ -33,7 +33,7 @@ type commandConn struct {
 func (cmd *commandConn) run() error {
 	// Try to establish a Network Connection to the Server and
 	// send a CONNECT Packet to the Server.
-	if err := cmd.ctx.cli.Connect(cmd.network, cmd.address, nil, cmd.connectOpts); err != nil {
+	if err := cmd.ctx.cli.Connect(cmd.network, cmd.address, cmd.connectOpts); err != nil {
 		return err
 	}
 

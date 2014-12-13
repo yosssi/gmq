@@ -44,7 +44,7 @@ type Client struct {
 
 // Connect tries to establish a Network Connection to the Server and
 // sends a CONNECT Packet to the Server.
-func (cli *Client) Connect(network, address string, _ *ConnectOptions, packetOpts *packet.CONNECTOptions) error {
+func (cli *Client) Connect(network, address string, packetOpts *packet.CONNECTOptions) error {
 	// Try to establish a Network Connection to the Server.
 	if err := cli.establish(network, address); err != nil {
 		return err
@@ -65,7 +65,7 @@ func (cli *Client) Connect(network, address string, _ *ConnectOptions, packetOpt
 
 // Disconnect sends a DISCONNECT Packet to the Server and
 // closes the Network Connection.
-func (cli *Client) Disconnect(_ *DisconnectOptions) error {
+func (cli *Client) Disconnect() error {
 	// Send a DISCONNECT Packet to the Server.
 	if err := sendDISCONNECT(cli); err != nil {
 		return err
@@ -77,6 +77,11 @@ func (cli *Client) Disconnect(_ *DisconnectOptions) error {
 	}
 
 	return nil
+}
+
+// Pingreq sends a PINGREQ Packet to the Server.
+func (cli *Client) Pingreq() error {
+	return cli.sendPINGREQ()
 }
 
 // Receive receives an MQTT Control Packet from the Server.

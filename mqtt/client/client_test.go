@@ -36,7 +36,7 @@ func TestClient_Connect_errEstablish(t *testing.T) {
 		conn: &mqtt.Connection{},
 	}
 
-	if err := cli.Connect("", "", nil, nil); err != ErrAlreadyConnected {
+	if err := cli.Connect("", "", nil); err != ErrAlreadyConnected {
 		if err == nil {
 			t.Errorf("err => nil, want => %q", ErrAlreadyConnected)
 		} else {
@@ -51,7 +51,6 @@ func TestClient_Connect_errSendCONNECT(t *testing.T) {
 	err := cli.Connect(
 		"tcp",
 		testAddress,
-		nil,
 		&packet.CONNECTOptions{
 			WillTopic: "willTopic",
 		},
@@ -81,7 +80,6 @@ func TestClient_Connect_errCloseConn(t *testing.T) {
 	err := cli.Connect(
 		"tcp",
 		testAddress,
-		nil,
 		&packet.CONNECTOptions{
 			WillTopic: "willTopic",
 		},
@@ -106,7 +104,6 @@ func TestClient_Connect(t *testing.T) {
 		"tcp",
 		testAddress,
 		nil,
-		nil,
 	)
 
 	if err != nil {
@@ -125,12 +122,12 @@ func TestClient_Disconnect_errSendDISCONNECT(t *testing.T) {
 
 	cli := &Client{}
 
-	if err := cli.Connect("tcp", testAddress, nil, nil); err != nil {
+	if err := cli.Connect("tcp", testAddress, nil); err != nil {
 		t.Errorf("err => %q, want => nil", err)
 		return
 	}
 
-	if err := cli.Disconnect(nil); err != errTest {
+	if err := cli.Disconnect(); err != errTest {
 		if err == nil {
 			t.Errorf("err => nil, want => %q", errTest)
 		} else {
@@ -154,6 +151,28 @@ func TestClient_Disconnect_errCloseConn(t *testing.T) {
 		"tcp",
 		testAddress,
 		nil,
+	)
+
+	if err != nil {
+		t.Errorf("err => %q, want => nil", err)
+		return
+	}
+
+	if err := cli.Disconnect(); err != errTest {
+		if err == nil {
+			t.Errorf("err => nil, want => %q", errTest)
+		} else {
+			t.Errorf("err => %q, want => %q", err, errTest)
+		}
+	}
+}
+
+func TestClient_Disconnect(t *testing.T) {
+	cli := &Client{}
+
+	err := cli.Connect(
+		"tcp",
+		testAddress,
 		nil,
 	)
 
@@ -162,12 +181,33 @@ func TestClient_Disconnect_errCloseConn(t *testing.T) {
 		return
 	}
 
-	if err := cli.Disconnect(nil); err != errTest {
-		if err == nil {
-			t.Errorf("err => nil, want => %q", errTest)
-		} else {
-			t.Errorf("err => %q, want => %q", err, errTest)
+	if err := cli.Disconnect(); err != nil {
+		t.Errorf("err => %q, want => nil", err)
+	}
+}
+
+func TestClient_Pingreq(t *testing.T) {
+	cli := &Client{}
+
+	err := cli.Connect(
+		"tcp",
+		testAddress,
+		nil,
+	)
+
+	if err != nil {
+		t.Errorf("err => %q, want => nil", err)
+		return
+	}
+
+	defer func() {
+		if err := cli.Disconnect(); err != nil {
+			t.Errorf("err => %q, want => nil", err)
 		}
+	}()
+
+	if err := cli.Pingreq(); err != nil {
+		t.Errorf("err => %q, want => nil", err)
 	}
 }
 
@@ -189,7 +229,7 @@ func TestClient_Receive(t *testing.T) {
 		return
 	}
 
-	if err := cli.Disconnect(nil); err != nil {
+	if err := cli.Disconnect(); err != nil {
 		t.Errorf("err => %q, want => nil", err)
 	}
 }
@@ -351,7 +391,7 @@ func TestClient_close_cleanSession(t *testing.T) {
 		return
 	}
 
-	if err := cli.Disconnect(nil); err != nil {
+	if err := cli.Disconnect(); err != nil {
 		t.Errorf("err => %q, want => nil", err)
 	}
 }
