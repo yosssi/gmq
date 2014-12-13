@@ -2,15 +2,15 @@ package packet
 
 import "testing"
 
-func TestNewDISCONNECT(t *testing.T) {
-	fh := NewDISCONNECT().(*DISCONNECT).FixedHeader
+func TestNewPINGREQ(t *testing.T) {
+	fh := NewPINGREQ().(*PINGREQ).FixedHeader
 
 	if get, want := len(fh), 2; get != want {
 		t.Errorf("len(fh) => %d, want => %d", get, want)
 		return
 	}
 
-	if get, want := fh[0], byte(TypeDISCONNECT<<4); get != want {
+	if get, want := fh[0], byte(TypePINGREQ<<4); get != want {
 		t.Errorf("fh[0] => %d, want => %d", get, want)
 		return
 	}
@@ -19,4 +19,5 @@ func TestNewDISCONNECT(t *testing.T) {
 		t.Errorf("fh[0] => %d, want => %d", get, want)
 		return
 	}
+
 }

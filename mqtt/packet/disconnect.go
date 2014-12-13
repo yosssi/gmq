@@ -7,7 +7,7 @@ type DISCONNECT struct {
 
 // NewDISCONNECT creates and returns the DISCONNECT Packet.
 func NewDISCONNECT() Packet {
-	// Create a DISCONNECT Packet.
+	// Create the DISCONNECT Packet.
 	p := &DISCONNECT{}
 
 	// Set the Fixed header to the Packet.
