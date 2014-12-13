@@ -186,31 +186,6 @@ func TestClient_Disconnect(t *testing.T) {
 	}
 }
 
-func TestClient_Pingreq(t *testing.T) {
-	cli := &Client{}
-
-	err := cli.Connect(
-		"tcp",
-		testAddress,
-		nil,
-	)
-
-	if err != nil {
-		t.Errorf("err => %q, want => nil", err)
-		return
-	}
-
-	defer func() {
-		if err := cli.Disconnect(); err != nil {
-			t.Errorf("err => %q, want => nil", err)
-		}
-	}()
-
-	if err := cli.Pingreq(); err != nil {
-		t.Errorf("err => %q, want => nil", err)
-	}
-}
-
 func TestClient_Receive(t *testing.T) {
 	cli := &Client{}
 
@@ -452,36 +427,10 @@ func TestClient_sendCONNECT_newCONNECTErr(t *testing.T) {
 	}
 }
 
-func TestClient_sendDISCONNECT(t *testing.T) {
+func TestClient_Send_errNotYetConnected(t *testing.T) {
 	cli := &Client{}
 
-	if err := cli.establish("tcp", testAddress); err != nil {
-		t.Errorf("err => %q, want => nil", err)
-		return
-	}
-
-	if err := cli.sendDISCONNECT(); err != nil {
-		t.Errorf("err => %q, want => nil", err)
-	}
-}
-
-func TestClient_sendPINGREQ(t *testing.T) {
-	cli := &Client{}
-
-	if err := cli.establish("tcp", testAddress); err != nil {
-		t.Errorf("err => %q, want => nil", err)
-		return
-	}
-
-	if err := cli.sendPINGREQ(); err != nil {
-		t.Errorf("err => %q, want => nil", err)
-	}
-}
-
-func TestClient_send_errNotYetConnected(t *testing.T) {
-	cli := &Client{}
-
-	if err := cli.send(packet.NewDISCONNECT()); err != ErrNotYetConnected {
+	if err := cli.Send(packet.NewDISCONNECT()); err != ErrNotYetConnected {
 		if err == nil {
 			t.Errorf("err => nil, want => %q", ErrNotYetConnected)
 		} else {
@@ -490,12 +439,12 @@ func TestClient_send_errNotYetConnected(t *testing.T) {
 	}
 }
 
-func TestClient_send_errWriteTo(t *testing.T) {
+func TestClient_Send_errWriteTo(t *testing.T) {
 	cli := &Client{
 		conn: &mqtt.Connection{},
 	}
 
-	if err := cli.send(&errPacket{}); err != errTest {
+	if err := cli.Send(&errPacket{}); err != errTest {
 		if err == nil {
 			t.Errorf("err => nil, want => %q", errTest)
 		} else {

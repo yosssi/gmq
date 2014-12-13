@@ -31,7 +31,7 @@ var closeConn = func(cli *Client) error {
 // another function value will be assigned to this global variable
 // while testing.
 var sendDISCONNECT = func(cli *Client) error {
-	return cli.sendDISCONNECT()
+	return cli.Send(packet.NewDISCONNECT())
 }
 
 // Client represents a Client.
@@ -79,9 +79,20 @@ func (cli *Client) Disconnect() error {
 	return nil
 }
 
-// Pingreq sends a PINGREQ Packet to the Server.
-func (cli *Client) Pingreq() error {
-	return cli.sendPINGREQ()
+// Send sends an MQTT Control Packet to the Server.
+func (cli *Client) Send(p packet.Packet) error {
+	// Return an error if the Client has not yet connected to the Server.
+	if cli.conn == nil {
+		return ErrNotYetConnected
+	}
+
+	// Write the Packet to the buffered writer.
+	if _, err := p.WriteTo(cli.conn.W); err != nil {
+		return err
+	}
+
+	// Flush the buffered writer.
+	return cli.conn.W.Flush()
 }
 
 // Receive receives an MQTT Control Packet from the Server.
@@ -217,35 +228,7 @@ func (cli *Client) sendCONNECT(opts *packet.CONNECTOptions) error {
 	}
 
 	// Send the CONNECT Packet to the Server.
-	return cli.send(p)
-}
-
-// SendDISCONNECT sends a DISCONNECT Packet to the Server.
-func (cli *Client) sendDISCONNECT() error {
-	// Send a DISCONNECT Packet to the Server.
-	return cli.send(packet.NewDISCONNECT())
-}
-
-// sendPINGREQ sends a PINGREQ Packet to the Server.
-func (cli *Client) sendPINGREQ() error {
-	// Send a PINGREQ Packet to the Server.
-	return cli.send(packet.NewPINGREQ())
-}
-
-// send sends an MQTT Control Packet to the Server.
-func (cli *Client) send(p packet.Packet) error {
-	// Return an error if the Client has not yet connected to the Server.
-	if cli.conn == nil {
-		return ErrNotYetConnected
-	}
-
-	// Write the Packet to the buffered writer.
-	if _, err := p.WriteTo(cli.conn.W); err != nil {
-		return err
-	}
-
-	// Flush the buffered writer.
-	return cli.conn.W.Flush()
+	return cli.Send(p)
 }
 
 // New creates and returns a Client.

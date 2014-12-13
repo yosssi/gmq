@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/yosssi/gmq/mqtt"
 	"github.com/yosssi/gmq/mqtt/packet"
@@ -38,6 +39,22 @@ func (cmd *commandConn) run() error {
 	}
 
 	// Launch a goroutine which sends a Packet to the Server.
+	go func() {
+		for {
+			select {
+			case p := <-cmd.ctx.sendc:
+				// Send the Packet to the Server.
+				if err := cmd.ctx.cli.Send(p); err != nil {
+					cmd.ctx.errc <- err
+				}
+			case <-time.After(time.Duration(*cmd.connectOpts.KeepAlive) * time.Second):
+				// Send a PINGREQ Packet to the Server.
+				if err := cmd.ctx.cli.Send(packet.NewPINGREQ()); err != nil {
+					cmd.ctx.errc <- err
+				}
+			}
+		}
+	}()
 
 	// Launch a goroutine which receives a Packet from the Server.
 
