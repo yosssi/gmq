@@ -66,11 +66,6 @@ func (cli *Client) Connect(network, address string, _ *ConnectOptions, packetOpt
 // Disconnect sends a DISCONNECT Packet to the Server and
 // closes the Network Connection.
 func (cli *Client) Disconnect(_ *DisconnectOptions) error {
-	// Return an error if the Client has not yet connected to the Server.
-	if cli.conn == nil {
-		return ErrNotYetConnected
-	}
-
 	// Send a DISCONNECT Packet to the Server.
 	if err := sendDISCONNECT(cli); err != nil {
 		return err
@@ -192,11 +187,6 @@ func (cli *Client) close() error {
 
 // SendCONNECT sends a CONNECT Packet to the Server.
 func (cli *Client) sendCONNECT(opts *packet.CONNECTOptions) error {
-	// Return an error if the Client has not yet connected to the Server.
-	if cli.conn == nil {
-		return ErrNotYetConnected
-	}
-
 	// Initialize the options.
 	if opts == nil {
 		opts = &packet.CONNECTOptions{}
@@ -227,13 +217,14 @@ func (cli *Client) sendCONNECT(opts *packet.CONNECTOptions) error {
 
 // SendDISCONNECT sends a DISCONNECT Packet to the Server.
 func (cli *Client) sendDISCONNECT() error {
-	// Return an error if the Client has not yet connected to the Server.
-	if cli.conn == nil {
-		return ErrNotYetConnected
-	}
-
 	// Send a DISCONNECT Packet to the Server.
 	return cli.send(packet.NewDISCONNECT())
+}
+
+// sendPINGREQ sends a PINGREQ Packet to the Server.
+func (cli *Client) sendPINGREQ() error {
+	// Send a PINGREQ Packet to the Server.
+	return cli.send(packet.NewPINGREQ())
 }
 
 // send sends an MQTT Control Packet to the Server.

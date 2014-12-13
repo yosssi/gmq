@@ -114,18 +114,6 @@ func TestClient_Connect(t *testing.T) {
 	}
 }
 
-func TestClient_Disconnect_errNotYetConnected(t *testing.T) {
-	cli := &Client{}
-
-	if err := cli.Disconnect(nil); err != ErrNotYetConnected {
-		if err == nil {
-			t.Errorf("err => nil, want => %q", ErrNotYetConnected)
-		} else {
-			t.Errorf("err => %q, want => %q", err, ErrNotYetConnected)
-		}
-	}
-}
-
 func TestClient_Disconnect_errSendDISCONNECT(t *testing.T) {
 	defer func(sendDISCONNECTBak func(*Client) error) {
 		sendDISCONNECT = sendDISCONNECTBak
@@ -368,18 +356,6 @@ func TestClient_close_cleanSession(t *testing.T) {
 	}
 }
 
-func TestClient_sendCONNECT_errNotYetConnected(t *testing.T) {
-	cli := &Client{}
-
-	if err := cli.sendCONNECT(nil); err != ErrNotYetConnected {
-		if err == nil {
-			t.Errorf("err => nil, want => %q", ErrNotYetConnected)
-		} else {
-			t.Errorf("err => %q, want => %q", err, ErrNotYetConnected)
-		}
-	}
-}
-
 func TestClient_sendCONNECT_optsNil(t *testing.T) {
 	cli := &Client{}
 
@@ -436,18 +412,6 @@ func TestClient_sendCONNECT_newCONNECTErr(t *testing.T) {
 	}
 }
 
-func TestClient_sendDISCONNECT_errNotYetConnected(t *testing.T) {
-	cli := &Client{}
-
-	if err := cli.sendDISCONNECT(); err != ErrNotYetConnected {
-		if err == nil {
-			t.Errorf("err => nil, want => %q", ErrNotYetConnected)
-		} else {
-			t.Errorf("err => %q, want => %q", err, ErrNotYetConnected)
-		}
-	}
-}
-
 func TestClient_sendDISCONNECT(t *testing.T) {
 	cli := &Client{}
 
@@ -457,6 +421,19 @@ func TestClient_sendDISCONNECT(t *testing.T) {
 	}
 
 	if err := cli.sendDISCONNECT(); err != nil {
+		t.Errorf("err => %q, want => nil", err)
+	}
+}
+
+func TestClient_sendPINGREQ(t *testing.T) {
+	cli := &Client{}
+
+	if err := cli.establish("tcp", testAddress); err != nil {
+		t.Errorf("err => %q, want => nil", err)
+		return
+	}
+
+	if err := cli.sendPINGREQ(); err != nil {
 		t.Errorf("err => %q, want => nil", err)
 	}
 }
