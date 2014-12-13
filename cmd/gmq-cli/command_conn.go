@@ -41,13 +41,18 @@ func (cmd *commandConn) run() error {
 	// Launch a goroutine which sends a Packet to the Server.
 	go func() {
 		for {
+			var timeout <-chan time.Time
+			if *cmd.connectOpts.KeepAlive > 0 {
+				timeout = time.After(time.Duration(*cmd.connectOpts.KeepAlive) * time.Second)
+			}
+
 			select {
 			case p := <-cmd.ctx.sendc:
 				// Send the Packet to the Server.
 				if err := cmd.ctx.cli.Send(p); err != nil {
 					cmd.ctx.errc <- err
 				}
-			case <-time.After(time.Duration(*cmd.connectOpts.KeepAlive) * time.Second):
+			case <-timeout:
 				// Send a PINGREQ Packet to the Server.
 				if err := cmd.ctx.cli.Send(packet.NewPINGREQ()); err != nil {
 					cmd.ctx.errc <- err
@@ -56,13 +61,29 @@ func (cmd *commandConn) run() error {
 		}
 	}()
 
-	// Launch a goroutine which receives a Packet from the Server.
-
 	// Launch a goroutine which reads data from the Network Connection.
 	go func() {
 		for {
-			ptype, p, err := cmd.ctx.cli.Receive()
-			fmt.Println(ptype, p, err)
+			p, err := cmd.ctx.cli.Receive()
+			if err != nil {
+				cmd.ctx.errc <- err
+				continue
+			}
+
+			cmd.ctx.recvc <- p
+		}
+	}()
+
+	// Launch a goroutine which handles a Packet received from the Server.
+	go func() {
+		for p := range cmd.ctx.recvc {
+			ptype, err := p.Type()
+			if err != nil {
+				cmd.ctx.errc <- err
+				continue
+			}
+
+			fmt.Println(ptype, p)
 		}
 	}()
 

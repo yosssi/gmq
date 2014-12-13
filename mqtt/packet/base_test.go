@@ -45,3 +45,33 @@ func TestBase_WriteTo(t *testing.T) {
 		t.Errorf("b.String() => %q, want => %q", get, want)
 	}
 }
+
+func TestBase_Type_err(t *testing.T) {
+	b := Base{}
+
+	if _, err := b.Type(); err != ErrInvalidFixedHeaderLen {
+		if err == nil {
+			t.Errorf("err => nil, want => %q", ErrInvalidFixedHeaderLen)
+		} else {
+			t.Errorf("err => %q, want => %q", err, ErrInvalidFixedHeaderLen)
+		}
+	}
+}
+
+func TestBase_Type(t *testing.T) {
+	var srcPtype byte = 0x10
+
+	b := Base{
+		FixedHeader: []byte{srcPtype, 0x00},
+	}
+
+	ptype, err := b.Type()
+	if err != nil {
+		t.Errorf("err => %q, want => nil", err)
+		return
+	}
+
+	if want := srcPtype >> 4; ptype != want {
+		t.Errorf("ptype => %X, want => %X", ptype, want)
+	}
+}

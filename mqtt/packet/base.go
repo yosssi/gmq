@@ -13,7 +13,7 @@ type Base struct {
 }
 
 // WriteTo writes the Packet data to the writer.
-func (p Base) WriteTo(w io.Writer) (int64, error) {
+func (p *Base) WriteTo(w io.Writer) (int64, error) {
 	var bf bytes.Buffer
 
 	// Write the Fixed header, the Variable header and the Payload to the buffer.
@@ -25,4 +25,9 @@ func (p Base) WriteTo(w io.Writer) (int64, error) {
 	n, err := w.Write(bf.Bytes())
 
 	return int64(n), err
+}
+
+// Type returns the MQTT Control Packet type.
+func (p *Base) Type() (byte, error) {
+	return typeFromBytes(p.FixedHeader)
 }

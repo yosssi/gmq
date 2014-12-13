@@ -96,20 +96,17 @@ func (cli *Client) Send(p packet.Packet) error {
 }
 
 // Receive receives an MQTT Control Packet from the Server.
-func (cli *Client) Receive() (byte, packet.Packet, error) {
+func (cli *Client) Receive() (packet.Packet, error) {
 	// Return an error if the Client has not yet connected to the Server.
 	if cli.conn == nil {
-		return 0x00, nil, ErrNotYetConnected
+		return nil, ErrNotYetConnected
 	}
 
 	// Get the first byte of the Packet.
 	b, err := cli.conn.R.ReadByte()
 	if err != nil {
-		return 0x00, nil, err
+		return nil, err
 	}
-
-	// Extract the MQTT Control Packet Type from the first byte.
-	ptype := b >> 4
 
 	// Create the Fixed header.
 	fixedHeader := []byte{b}
@@ -121,7 +118,7 @@ func (cli *Client) Receive() (byte, packet.Packet, error) {
 		// Get the next byte of the Packet.
 		b, err = cli.conn.R.ReadByte()
 		if err != nil {
-			return 0x00, nil, err
+			return nil, err
 		}
 
 		fixedHeader = append(fixedHeader, b)
@@ -141,22 +138,12 @@ func (cli *Client) Receive() (byte, packet.Packet, error) {
 	if rl > 0 {
 		// Get the remaining of the Packet.
 		if _, err = io.ReadFull(cli.conn.R, remaining); err != nil {
-			return 0x00, nil, err
+			return nil, err
 		}
 	}
 
-	var p packet.Packet
-
-	switch ptype {
-	case packet.TypeCONNACK:
-		// Create the CONNACK Packet from the byte data to validate the data.
-		if p, err = packet.NewCONNACKFromBytes(fixedHeader, remaining); err != nil {
-			return 0x00, nil, err
-		}
-	}
-
-	// Ruturn the MQTT Control Packet Type and the Packet.
-	return ptype, p, nil
+	// Create and return a Packet.
+	return packet.NewFromBytes(fixedHeader, remaining)
 }
 
 // establish tries to establish a Network Connection to the Server.

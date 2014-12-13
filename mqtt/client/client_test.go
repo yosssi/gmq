@@ -31,6 +31,10 @@ func (p *errPacket) WriteTo(_ io.Writer) (int64, error) {
 	return 0, errTest
 }
 
+func (p *errPacket) Type() (byte, error) {
+	return 0x00, errTest
+}
+
 func TestClient_Connect_errEstablish(t *testing.T) {
 	cli := &Client{
 		conn: &mqtt.Connection{},
@@ -186,7 +190,7 @@ func TestClient_Disconnect(t *testing.T) {
 	}
 }
 
-func TestClient_Receive(t *testing.T) {
+func TestClient_Receive_CONNACK(t *testing.T) {
 	cli := &Client{}
 
 	if err := cli.establish("tcp", testAddress); err != nil {
@@ -199,7 +203,40 @@ func TestClient_Receive(t *testing.T) {
 		return
 	}
 
-	if _, _, err := cli.Receive(); err != nil {
+	if _, err := cli.Receive(); err != nil {
+		t.Errorf("err => %q, want => nil", err)
+		return
+	}
+
+	if err := cli.Disconnect(); err != nil {
+		t.Errorf("err => %q, want => nil", err)
+	}
+}
+
+func TestClient_Receive_PINGREQ(t *testing.T) {
+	cli := &Client{}
+
+	if err := cli.establish("tcp", testAddress); err != nil {
+		t.Errorf("err => %q, want => nil", err)
+		return
+	}
+
+	if err := cli.sendCONNECT(nil); err != nil {
+		t.Errorf("err => %q, want => nil", err)
+		return
+	}
+
+	if _, err := cli.Receive(); err != nil {
+		t.Errorf("err => %q, want => nil", err)
+		return
+	}
+
+	if err := cli.Send(packet.NewPINGREQ()); err != nil {
+		t.Errorf("err => %q, want => nil", err)
+		return
+	}
+
+	if _, err := cli.Receive(); err != nil {
 		t.Errorf("err => %q, want => nil", err)
 		return
 	}
@@ -212,7 +249,7 @@ func TestClient_Receive(t *testing.T) {
 func TestClient_Receive_errNotYetConnected(t *testing.T) {
 	cli := &Client{}
 
-	if _, _, err := cli.Receive(); err != ErrNotYetConnected {
+	if _, err := cli.Receive(); err != ErrNotYetConnected {
 		if err == nil {
 			t.Errorf("err => nil, want => %q", ErrNotYetConnected)
 		} else {
@@ -231,7 +268,7 @@ func TestClient_Receive_errFirstReadByte(t *testing.T) {
 
 	cli.conn.R = bufio.NewReader(bytes.NewReader(nil))
 
-	if _, _, err := cli.Receive(); err != io.EOF {
+	if _, err := cli.Receive(); err != io.EOF {
 		if err == nil {
 			t.Errorf("err => nil, want => %q", io.EOF)
 		} else {
@@ -250,7 +287,7 @@ func TestClient_Receive_errSecondReadByte(t *testing.T) {
 
 	cli.conn.R = bufio.NewReader(bytes.NewReader([]byte{0x00}))
 
-	if _, _, err := cli.Receive(); err != io.EOF {
+	if _, err := cli.Receive(); err != io.EOF {
 		if err == nil {
 			t.Errorf("err => nil, want => %q", io.EOF)
 		} else {
@@ -269,7 +306,7 @@ func TestClient_Receive_errReadFull(t *testing.T) {
 
 	cli.conn.R = bufio.NewReader(bytes.NewReader([]byte{packet.TypeCONNACK << 4, 0x80, 0x01}))
 
-	if _, _, err := cli.Receive(); err != io.EOF {
+	if _, err := cli.Receive(); err != io.EOF {
 		if err == nil {
 			t.Errorf("err => nil, want => %q", io.EOF)
 		} else {
@@ -288,7 +325,7 @@ func TestClient_Receive_errNewCONNACKFromBytes(t *testing.T) {
 
 	cli.conn.R = bufio.NewReader(bytes.NewReader([]byte{packet.TypeCONNACK << 4, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}))
 
-	if _, _, err := cli.Receive(); err != packet.ErrCONNACKInvalidVariableHeaderLen {
+	if _, err := cli.Receive(); err != packet.ErrCONNACKInvalidVariableHeaderLen {
 		if err == nil {
 			t.Errorf("err => nil, want => %q", packet.ErrCONNACKInvalidVariableHeaderLen)
 		} else {
