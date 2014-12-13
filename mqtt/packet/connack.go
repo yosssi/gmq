@@ -48,7 +48,8 @@ type CONNACK struct {
 	ConnectReturnCode byte
 }
 
-// NewCONNACKFromBytes creates the CONNACK Packet from the byte data and returns it.
+// NewCONNACKFromBytes creates the CONNACK Packet
+// from the byte data and returns it.
 func NewCONNACKFromBytes(fixedHeader, variableHeader []byte) (Packet, error) {
 	// Check the length of the Fixed header.
 	if len(fixedHeader) != lenCONNACKFixedHeader {
@@ -91,7 +92,7 @@ func NewCONNACKFromBytes(fixedHeader, variableHeader []byte) (Packet, error) {
 		return nil, ErrCONNACKInvalidConnectReturnCode
 	}
 
-	// Create a CONNACK Packet.
+	// Create the CONNACK Packet.
 	p := &CONNACK{}
 
 	// Set the Fixed header to the Packet.
