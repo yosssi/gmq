@@ -56,13 +56,25 @@ func (cmd *commandConn) run() error {
 
 			select {
 			case p := <-cmd.ctx.sendc:
+				cmd.ctx.climu.Lock()
+
 				// Send the Packet to the Server.
-				if err := cmd.ctx.cli.Send(p); err != nil {
+				err := cmd.ctx.cli.Send(p)
+
+				cmd.ctx.climu.Unlock()
+
+				if err != nil {
 					cmd.ctx.errc <- err
 				}
 			case <-timeout:
+				cmd.ctx.climu.Lock()
+
 				// Send a PINGREQ Packet to the Server.
-				if err := cmd.ctx.cli.Send(packet.NewPINGREQ()); err != nil {
+				err := cmd.ctx.cli.Send(packet.NewPINGREQ())
+
+				cmd.ctx.climu.Unlock()
+
+				if err != nil {
 					cmd.ctx.errc <- err
 				}
 			}
