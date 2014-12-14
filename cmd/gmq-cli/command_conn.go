@@ -135,7 +135,7 @@ func newCommandConn(args []string, ctx *context) (*commandConn, error) {
 	host := flg.String("h", defaultHost, "host name of the Server to connect to")
 	port := flg.Uint("p", defaultPort, "port number of the Server to connect to")
 	connackTimeout := flg.Uint(
-		"act",
+		"ackt",
 		defaultCONNACKTimeout,
 		"Timeout in seconds for the Client to wait receiving the CONNACK Packet after sending the CONNECT Packet",
 	)

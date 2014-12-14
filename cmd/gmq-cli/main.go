@@ -38,6 +38,15 @@ func main() {
 	// Create a context.
 	ctx := newContext()
 
+	// Launch a goroutine which handles an error.
+	go func() {
+		for err := range ctx.errc {
+			os.Stderr.WriteString("\n")
+			printError(err)
+			printHeader()
+		}
+	}()
+
 	// Create a scanner which reads lines from standard input.
 	scanner := bufio.NewScanner(stdin)
 
