@@ -16,18 +16,16 @@ const (
 
 // context represents a context of GMO Client.
 type context struct {
-	cli   *client.Client
-	climu *sync.RWMutex
-	sendc chan packet.Packet
-	recvc chan packet.Packet
-	errc  chan error
+	cli      *client.Client
+	climu    *sync.RWMutex
+	sendc    chan packet.Packet
+	recvc    chan packet.Packet
+	connackc chan struct{}
+	errc     chan error
 }
 
 // disconnect disconnects the Network Connection.
 func (ctx *context) disconnect() error {
-	ctx.climu.Lock()
-	defer ctx.climu.Unlock()
-
 	if err := ctx.cli.Disconnect(); err != nil {
 		return err
 	}
@@ -38,10 +36,11 @@ func (ctx *context) disconnect() error {
 // newContext creates and returns a context.
 func newContext() *context {
 	return &context{
-		cli:   client.New(nil),
-		climu: new(sync.RWMutex),
-		sendc: make(chan packet.Packet, defaultSendcBufSize),
-		recvc: make(chan packet.Packet, defaultRecvcBufSize),
-		errc:  make(chan error, defaultErrcBufSize),
+		cli:      client.New(nil),
+		climu:    new(sync.RWMutex),
+		sendc:    make(chan packet.Packet, defaultSendcBufSize),
+		recvc:    make(chan packet.Packet, defaultRecvcBufSize),
+		connackc: make(chan struct{}),
+		errc:     make(chan error, defaultErrcBufSize),
 	}
 }

@@ -37,6 +37,9 @@ type commandConn struct {
 // run tries to establish a Network Connection to the Server and
 // sends a CONNECT Packet to the Server.
 func (cmd *commandConn) run() error {
+	cmd.ctx.climu.Lock()
+	defer cmd.ctx.climu.Unlock()
+
 	// Try to establish a Network Connection to the Server and
 	// send a CONNECT Packet to the Server.
 	if err := cmd.ctx.cli.Connect(cmd.network, cmd.address, cmd.connectOpts); err != nil {
@@ -79,18 +82,18 @@ func (cmd *commandConn) run() error {
 		}
 	}()
 
-	// Channel to notify the arrival of the CONNACK Packet
-	var connackc chan struct{}
-
 	// Monitor the arrival of the CONNACK Packet if connackTimeout > 0.
 	if cmd.connackTimeout > 0 {
-		// Create a channel to notify the arrival of the CONNACK Packet.
-		connackc = make(chan struct{})
-
 		go func() {
+			var timeout <-chan time.Time
+
+			if cmd.connackTimeout > 0 {
+				timeout = time.After(cmd.connackTimeout * time.Second)
+			}
+
 			select {
-			case <-connackc:
-			case <-time.After(cmd.connackTimeout * time.Second):
+			case <-cmd.ctx.connackc:
+			case <-timeout:
 				// Disconnect the Network Connection.
 				if err := cmd.ctx.disconnect(); err != nil {
 					cmd.ctx.errc <- err
@@ -114,9 +117,7 @@ func (cmd *commandConn) run() error {
 			switch ptype {
 			case packet.TypeCONNACK:
 				// Notify the arrival of the CONNACK Packet.
-				if connackc != nil {
-					//connackc <- struct{}{}
-				}
+				cmd.ctx.connackc <- struct{}{}
 			}
 		}
 	}()
