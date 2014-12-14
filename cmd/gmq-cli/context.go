@@ -16,31 +16,50 @@ const (
 
 // context represents a context of GMO Client.
 type context struct {
-	cli      *client.Client
-	climu    *sync.RWMutex
-	sendc    chan packet.Packet
-	recvc    chan packet.Packet
-	connackc chan struct{}
-	errc     chan error
-}
+	cli   *client.Client
+	climu *sync.RWMutex
 
-// disconnect disconnects the Network Connection.
-func (ctx *context) disconnect() error {
-	if err := ctx.cli.Disconnect(); err != nil {
-		return err
-	}
+	sendc      chan packet.Packet
+	sendEndc   chan struct{}
+	sendEndedc chan struct{}
 
-	return nil
+	readEndedc chan struct{}
+
+	recvc      chan packet.Packet
+	recvEndc   chan struct{}
+	recvEndedc chan struct{}
+
+	connackc      chan struct{}
+	connackEndc   chan struct{}
+	connackEndedc chan struct{}
+
+	errc      chan error
+	errEndc   chan struct{}
+	errEndedc chan struct{}
 }
 
 // newContext creates and returns a context.
 func newContext() *context {
 	return &context{
-		cli:      client.New(nil),
-		climu:    new(sync.RWMutex),
-		sendc:    make(chan packet.Packet, defaultSendcBufSize),
-		recvc:    make(chan packet.Packet, defaultRecvcBufSize),
-		connackc: make(chan struct{}),
-		errc:     make(chan error, defaultErrcBufSize),
+		cli:   client.New(nil),
+		climu: new(sync.RWMutex),
+
+		sendc:      make(chan packet.Packet, defaultSendcBufSize),
+		sendEndc:   make(chan struct{}),
+		sendEndedc: make(chan struct{}),
+
+		readEndedc: make(chan struct{}),
+
+		recvc:      make(chan packet.Packet, defaultRecvcBufSize),
+		recvEndc:   make(chan struct{}),
+		recvEndedc: make(chan struct{}),
+
+		connackc:      make(chan struct{}),
+		connackEndc:   make(chan struct{}),
+		connackEndedc: make(chan struct{}),
+
+		errc:      make(chan error, defaultErrcBufSize),
+		errEndc:   make(chan struct{}),
+		errEndedc: make(chan struct{}),
 	}
 }

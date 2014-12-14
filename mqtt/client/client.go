@@ -79,6 +79,17 @@ func (cli *Client) Disconnect() error {
 	return nil
 }
 
+// ClearConnection clears the Network Connection.
+func (cli *Client) ClearConnection() {
+	// Clear the Network Connection of the Client.
+	cli.conn = nil
+
+	// Clear the Session if the CleanSession is true.
+	if cli.sess != nil && cli.sess.CleanSession {
+		cli.sess = nil
+	}
+}
+
 // Send sends an MQTT Control Packet to the Server.
 func (cli *Client) Send(p packet.Packet) error {
 	// Return an error if the Client has not yet connected to the Server.
@@ -175,14 +186,6 @@ func (cli *Client) close() error {
 	// Close the Network Connection.
 	if err := cli.conn.Close(); err != nil {
 		return err
-	}
-
-	// Clear the Network Connection of the Client.
-	cli.conn = nil
-
-	// Clear the Session if the CleanSession is true.
-	if cli.sess != nil && cli.sess.CleanSession {
-		cli.sess = nil
 	}
 
 	return nil

@@ -48,88 +48,139 @@ func (cmd *commandConn) run() error {
 
 	// Launch a goroutine which sends a Packet to the Server.
 	go func() {
+		defer func() {
+			// Send an ended signal.
+			cmd.ctx.sendEndedc <- struct{}{}
+		}()
+
+	SendLoop:
 		for {
-			var timeout <-chan time.Time
+			var keepAlive <-chan time.Time
 			if *cmd.connectOpts.KeepAlive > 0 {
-				timeout = time.After(time.Duration(*cmd.connectOpts.KeepAlive) * time.Second)
+				keepAlive = time.After(time.Duration(*cmd.connectOpts.KeepAlive) * time.Second)
 			}
 
 			select {
 			case p := <-cmd.ctx.sendc:
-				cmd.ctx.climu.Lock()
-
 				// Send the Packet to the Server.
-				err := cmd.ctx.cli.Send(p)
+				if err := sendWithLock(cmd.ctx, p); err != nil {
+					// Disconnect the Network Connection.
+					go func() {
+						if err := disconnectWithLock(cmd.ctx); err != nil {
+							cmd.ctx.errc <- err
+							return
+						}
+					}()
 
-				cmd.ctx.climu.Unlock()
-
-				if err != nil {
 					cmd.ctx.errc <- err
-				}
-			case <-timeout:
-				cmd.ctx.climu.Lock()
 
+					break SendLoop
+				}
+			case <-keepAlive:
 				// Send a PINGREQ Packet to the Server.
-				err := cmd.ctx.cli.Send(packet.NewPINGREQ())
+				if err := sendWithLock(cmd.ctx, packet.NewPINGREQ()); err != nil {
+					// Disconnect the Network Connection.
+					go func() {
+						if err := disconnectWithLock(cmd.ctx); err != nil {
+							cmd.ctx.errc <- err
+							return
+						}
+					}()
 
-				cmd.ctx.climu.Unlock()
-
-				if err != nil {
 					cmd.ctx.errc <- err
+
+					break SendLoop
 				}
+			case <-cmd.ctx.sendEndc:
+				return
 			}
 		}
+
+		<-cmd.ctx.sendEndc
 	}()
 
 	// Launch a goroutine which reads data from the Network Connection.
 	go func() {
+		defer func() {
+			// Send an ended signal.
+			cmd.ctx.readEndedc <- struct{}{}
+		}()
+
 		for {
 			p, err := cmd.ctx.cli.Receive()
 			if err != nil {
+				// Disconnect the Network Connection.
+				go func() {
+					if err := disconnectWithLock(cmd.ctx); err != nil {
+						cmd.ctx.errc <- err
+						return
+					}
+				}()
+
 				cmd.ctx.errc <- err
-				continue
+
+				return
 			}
 
 			cmd.ctx.recvc <- p
 		}
 	}()
 
-	// Monitor the arrival of the CONNACK Packet if connackTimeout > 0.
-	if cmd.connackTimeout > 0 {
-		go func() {
-			var timeout <-chan time.Time
+	// Launch a goroutine which monitors the arrival of the CONNACK Packet if connackTimeout > 0.
+	go func() {
+		defer func() {
+			// Send an ended signal.
+			cmd.ctx.connackEndedc <- struct{}{}
+		}()
 
-			if cmd.connackTimeout > 0 {
-				timeout = time.After(cmd.connackTimeout * time.Second)
-			}
+		var timeout <-chan time.Time
 
-			select {
-			case <-cmd.ctx.connackc:
-			case <-timeout:
-				// Disconnect the Network Connection.
-				if err := cmd.ctx.disconnect(); err != nil {
+		if cmd.connackTimeout > 0 {
+			timeout = time.After(cmd.connackTimeout * time.Second)
+		}
+
+		select {
+		case <-cmd.ctx.connackc:
+		case <-timeout:
+			// Disconnect the Network Connection.
+			go func() {
+				if err := disconnectWithLock(cmd.ctx); err != nil {
 					cmd.ctx.errc <- err
 					return
 				}
+			}()
 
-				cmd.ctx.errc <- errCONNACKTimeout
-			}
-		}()
-	}
+			cmd.ctx.errc <- errCONNACKTimeout
+		case <-cmd.ctx.connackEndc:
+			return
+		}
+
+		<-cmd.ctx.connackEndc
+	}()
 
 	// Launch a goroutine which handles a Packet received from the Server.
 	go func() {
-		for p := range cmd.ctx.recvc {
-			ptype, err := p.Type()
-			if err != nil {
-				cmd.ctx.errc <- err
-				continue
-			}
+		defer func() {
+			// Send an ended signal.
+			cmd.ctx.recvEndedc <- struct{}{}
+		}()
 
-			switch ptype {
-			case packet.TypeCONNACK:
-				// Notify the arrival of the CONNACK Packet.
-				cmd.ctx.connackc <- struct{}{}
+		for {
+			select {
+			case p := <-cmd.ctx.recvc:
+				ptype, err := p.Type()
+				if err != nil {
+					cmd.ctx.errc <- err
+					continue
+				}
+
+				switch ptype {
+				case packet.TypeCONNACK:
+					// Notify the arrival of the CONNACK Packet.
+					//cmd.ctx.connackc <- struct{}{}
+				}
+			case <-cmd.ctx.recvEndc:
+				return
 			}
 		}
 	}()
