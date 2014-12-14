@@ -47,6 +47,15 @@ func main() {
 		}
 	}()
 
+	// Launch a goroutine which disconnects the Network Connection.
+	go func() {
+		for range ctx.disconnc {
+			if err := disconnectWithLock(ctx); err != nil {
+				ctx.errc <- err
+			}
+		}
+	}()
+
 	// Create a scanner which reads lines from standard input.
 	scanner := bufio.NewScanner(stdin)
 

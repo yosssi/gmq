@@ -66,13 +66,12 @@ func (cmd *commandConn) run() error {
 				if err := sendWithLock(cmd.ctx, p); err != nil {
 					// Disconnect the Network Connection.
 					go func() {
-						if err := disconnectWithLock(cmd.ctx); err != nil {
-							cmd.ctx.errc <- err
-							return
-						}
+						cmd.ctx.disconnc <- struct{}{}
 					}()
 
-					cmd.ctx.errc <- err
+					go func() {
+						cmd.ctx.errc <- err
+					}()
 
 					break SendLoop
 				}
@@ -81,13 +80,12 @@ func (cmd *commandConn) run() error {
 				if err := sendWithLock(cmd.ctx, packet.NewPINGREQ()); err != nil {
 					// Disconnect the Network Connection.
 					go func() {
-						if err := disconnectWithLock(cmd.ctx); err != nil {
-							cmd.ctx.errc <- err
-							return
-						}
+						cmd.ctx.disconnc <- struct{}{}
 					}()
 
-					cmd.ctx.errc <- err
+					go func() {
+						cmd.ctx.errc <- err
+					}()
 
 					break SendLoop
 				}
@@ -96,6 +94,7 @@ func (cmd *commandConn) run() error {
 			}
 		}
 
+		// Wait for the end signal.
 		<-cmd.ctx.sendEndc
 	}()
 
@@ -111,13 +110,12 @@ func (cmd *commandConn) run() error {
 			if err != nil {
 				// Disconnect the Network Connection.
 				go func() {
-					if err := disconnectWithLock(cmd.ctx); err != nil {
-						cmd.ctx.errc <- err
-						return
-					}
+					cmd.ctx.disconnc <- struct{}{}
 				}()
 
-				cmd.ctx.errc <- err
+				go func() {
+					cmd.ctx.errc <- err
+				}()
 
 				return
 			}
@@ -144,17 +142,17 @@ func (cmd *commandConn) run() error {
 		case <-timeout:
 			// Disconnect the Network Connection.
 			go func() {
-				if err := disconnectWithLock(cmd.ctx); err != nil {
-					cmd.ctx.errc <- err
-					return
-				}
+				cmd.ctx.disconnc <- struct{}{}
 			}()
 
-			cmd.ctx.errc <- errCONNACKTimeout
+			go func() {
+				cmd.ctx.errc <- errCONNACKTimeout
+			}()
 		case <-cmd.ctx.connackEndc:
 			return
 		}
 
+		// Wait for the end signal.
 		<-cmd.ctx.connackEndc
 	}()
 
@@ -170,14 +168,17 @@ func (cmd *commandConn) run() error {
 			case p := <-cmd.ctx.recvc:
 				ptype, err := p.Type()
 				if err != nil {
-					cmd.ctx.errc <- err
+					go func() {
+						cmd.ctx.errc <- err
+					}()
+
 					continue
 				}
 
 				switch ptype {
 				case packet.TypeCONNACK:
 					// Notify the arrival of the CONNACK Packet.
-					//cmd.ctx.connackc <- struct{}{}
+					cmd.ctx.connackc <- struct{}{}
 				}
 			case <-cmd.ctx.recvEndc:
 				return

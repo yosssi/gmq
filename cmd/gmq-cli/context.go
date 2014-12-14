@@ -9,9 +9,10 @@ import (
 
 // Default buffer size of the channels
 const (
-	defaultSendcBufSize = 1024
-	defaultRecvcBufSize = 1024
-	defaultErrcBufSize  = 1024
+	defaultSendcBufSize    = 1024
+	defaultRecvcBufSize    = 1024
+	defaultErrcBufSize     = 1024
+	defaultDisconncBufSize = 1024
 )
 
 // context represents a context of GMO Client.
@@ -36,6 +37,10 @@ type context struct {
 	errc      chan error
 	errEndc   chan struct{}
 	errEndedc chan struct{}
+
+	disconnc      chan struct{}
+	disconnEndc   chan struct{}
+	disconnEndedc chan struct{}
 }
 
 // newContext creates and returns a context.
@@ -61,5 +66,9 @@ func newContext() *context {
 		errc:      make(chan error, defaultErrcBufSize),
 		errEndc:   make(chan struct{}),
 		errEndedc: make(chan struct{}),
+
+		disconnc:      make(chan struct{}, defaultDisconncBufSize),
+		disconnEndc:   make(chan struct{}),
+		disconnEndedc: make(chan struct{}),
 	}
 }
