@@ -4,8 +4,9 @@ import "errors"
 
 // Command names
 const (
-	cmdNameConn = "conn"
-	cmdNameHelp = "help"
+	cmdNameConn    = "conn"
+	cmdNameDisconn = "disconn"
+	cmdNameHelp    = "help"
 )
 
 // Error values
@@ -22,10 +23,12 @@ type command interface {
 // newCommand creates and returns a command.
 func newCommand(cmdName string, cmdArgs []string, ctx *context) (command, error) {
 	switch cmdName {
-	case cmdNameHelp:
-		return newCommandHelp(), nil
 	case cmdNameConn:
 		return newCommandConn(cmdArgs, ctx)
+	case cmdNameDisconn:
+		return newCommandDisconn(ctx), nil
+	case cmdNameHelp:
+		return newCommandHelp(), nil
 	}
 
 	return nil, errInvalidCmdName

@@ -51,7 +51,9 @@ func main() {
 	go func() {
 		for range ctx.disconnc {
 			if err := disconnectWithLock(ctx); err != nil {
-				ctx.errc <- err
+				go func() {
+					ctx.errc <- err
+				}()
 			}
 		}
 	}()

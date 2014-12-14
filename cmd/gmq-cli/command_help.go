@@ -2,6 +2,9 @@ package main
 
 import "fmt"
 
+// strHelpFmt is the string format for the help.
+const strHelpFmt = "%-8s %s\n"
+
 // commandHelp represents a help command.
 type commandHelp struct{}
 
@@ -21,6 +24,7 @@ func newCommandHelp() *commandHelp {
 func printHelp() {
 	printVersion()
 	fmt.Println("Usage:")
-	fmt.Printf("%-8s %s\n", cmdNameConn, "establish a Network Connection and send a CONNECT Packet to the Server")
-	fmt.Printf("%-8s %s\n", cmdNameHelp, "print this help message")
+	fmt.Printf(strHelpFmt, cmdNameConn, "establish a Network Connection and send a CONNECT Packet to the Server")
+	fmt.Printf(strHelpFmt, cmdNameDisconn, "send a DISCONNECT Packet to the Server and disconnect the Network Connection")
+	fmt.Printf(strHelpFmt, cmdNameHelp, "print this help message")
 }

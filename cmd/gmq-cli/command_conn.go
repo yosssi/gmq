@@ -64,28 +64,14 @@ func (cmd *commandConn) run() error {
 			case p := <-cmd.ctx.sendc:
 				// Send the Packet to the Server.
 				if err := sendWithLock(cmd.ctx, p); err != nil {
-					// Disconnect the Network Connection.
-					go func() {
-						cmd.ctx.disconnc <- struct{}{}
-					}()
-
-					go func() {
-						cmd.ctx.errc <- err
-					}()
+					disconnectWithErr(cmd.ctx, err)
 
 					break SendLoop
 				}
 			case <-keepAlive:
 				// Send a PINGREQ Packet to the Server.
 				if err := sendWithLock(cmd.ctx, packet.NewPINGREQ()); err != nil {
-					// Disconnect the Network Connection.
-					go func() {
-						cmd.ctx.disconnc <- struct{}{}
-					}()
-
-					go func() {
-						cmd.ctx.errc <- err
-					}()
+					disconnectWithErr(cmd.ctx, err)
 
 					break SendLoop
 				}
@@ -108,14 +94,7 @@ func (cmd *commandConn) run() error {
 		for {
 			p, err := cmd.ctx.cli.Receive()
 			if err != nil {
-				// Disconnect the Network Connection.
-				go func() {
-					cmd.ctx.disconnc <- struct{}{}
-				}()
-
-				go func() {
-					cmd.ctx.errc <- err
-				}()
+				disconnectWithErr(cmd.ctx, err)
 
 				return
 			}
@@ -140,14 +119,7 @@ func (cmd *commandConn) run() error {
 		select {
 		case <-cmd.ctx.connackc:
 		case <-timeout:
-			// Disconnect the Network Connection.
-			go func() {
-				cmd.ctx.disconnc <- struct{}{}
-			}()
-
-			go func() {
-				cmd.ctx.errc <- errCONNACKTimeout
-			}()
+			disconnectWithErr(cmd.ctx, errCONNACKTimeout)
 		case <-cmd.ctx.connackEndc:
 			return
 		}
@@ -239,4 +211,16 @@ func newCommandConn(args []string, ctx *context) (*commandConn, error) {
 
 	// Return the command.
 	return cmd, nil
+}
+
+func disconnectWithErr(ctx *context, err error) {
+	// Disconnect the Network Connection.
+	go func() {
+		ctx.disconnc <- struct{}{}
+	}()
+
+	// Send the error to the error channel.
+	go func() {
+		ctx.errc <- err
+	}()
 }
