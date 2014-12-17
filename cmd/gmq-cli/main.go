@@ -18,10 +18,8 @@ var (
 	stdin io.Reader = os.Stdin
 )
 
-// Command-line flags
-var (
-	flagV = flag.Bool("v", false, "Print the version of GMQ Client and exit.")
-)
+// Command-line flag
+var flagV = flag.Bool("v", false, "Print the version of GMQ Client and exit.")
 
 func init() {
 	flag.Parse()
@@ -42,15 +40,14 @@ func main() {
 	scanner := bufio.NewScanner(stdin)
 
 	for printHeader(); scanner.Scan(); printHeader() {
-		// Get a string from the scanner.
-		s := strings.TrimSpace(scanner.Text())
+		// Get the command name and the command arguments from
+		// the scanner.
+		cmdName, cmdArgs := cmdNameArgs(scanner.Text())
 
-		// Skip the remaining processes if the string is zero value.
-		if s == "" {
+		// Skip the remaining processes if the command name is zero value.
+		if cmdName == "" {
 			continue
 		}
-
-		cmdName, cmdArgs := cmdNameArgs(s)
 
 		// Create a command.
 		cmd, err := newCommand(cmdName, cmdArgs, ctx)
@@ -65,7 +62,7 @@ func main() {
 			continue
 		}
 
-		// Print the successful message.
+		// Print the successfule message.
 		printSuccess(cmdName)
 	}
 }
@@ -77,7 +74,7 @@ func printHeader() {
 
 // printSuccess prints the successful message to standard output.
 func printSuccess(cmdName string) {
-	// Do nothing if the command is the help command.
+	// Do nothing if the command name is the help command's name.
 	if cmdName == cmdNameHelp {
 		return
 	}
@@ -85,14 +82,14 @@ func printSuccess(cmdName string) {
 	os.Stdout.WriteString("command was executed successfully.\n")
 }
 
-// printError prints the error to standard error.
+// printError prints the error to the standard error.
 func printError(err error) {
-	// Do nothing if the error is errCmdArgsParse.
+	// Do nothing is the error is errCmdArgsParse.
 	if err == errCmdArgsParse {
 		return
 	}
 
-	fmt.Fprintf(os.Stderr, "%s.\n", err)
+	fmt.Fprintln(os.Stderr, err)
 
 	// Print the help of the GMQ Client commands if the error is errInvalidCmdName.
 	if err == errInvalidCmdName {
@@ -101,20 +98,18 @@ func printError(err error) {
 	}
 }
 
-// Extract the command name and the command arguments from the parameter string.
+// cmdNameArgs extracts the command name and the command arguments from
+// the parameter string.
 func cmdNameArgs(s string) (string, []string) {
-	// Split the string into tokens.
-	tokens := strings.Split(s, " ")
+	// Split the string into the tokens.
+	tokens := strings.Split(strings.TrimSpace(s), " ")
 
-	// Get a command name from the tokens.
+	// Get the command name from the tokens.
 	cmdName := tokens[0]
 
-	// Get command arguments from the tokens.
-	var cmdArgs []string
+	// Get the command arguments from the tokens.
+	cmdArgs := make([]string, 0, len(tokens[1:]))
 	for _, t := range tokens[1:] {
-		// Trim the token
-		t = strings.TrimSpace(t)
-
 		// Skip the remaining processes if the token is zero value.
 		if t == "" {
 			continue

@@ -2,7 +2,7 @@ package main
 
 import "fmt"
 
-// strHelpFmt is the string format for the help.
+// String format for the help
 const strHelpFmt = "%-8s %s\n"
 
 // commandHelp represents a help command.
@@ -20,7 +20,6 @@ func newCommandHelp() *commandHelp {
 	return &commandHelp{}
 }
 
-// printHelp prints the help of the GMQ Client commands to standard output.
 func printHelp() {
 	printVersion()
 	fmt.Println("Usage:")
