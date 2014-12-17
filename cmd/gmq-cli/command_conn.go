@@ -5,9 +5,11 @@ import (
 	"flag"
 	"os"
 	"strconv"
+	"sync/atomic"
 	"time"
 
 	"github.com/yosssi/gmq/mqtt"
+	"github.com/yosssi/gmq/mqtt/client"
 	"github.com/yosssi/gmq/mqtt/packet"
 )
 
@@ -37,126 +39,20 @@ type commandConn struct {
 // run tries to establish a Network Connection to the Server and
 // sends a CONNECT Packet to the Server.
 func (cmd *commandConn) run() error {
-	cmd.ctx.climu.Lock()
-	defer cmd.ctx.climu.Unlock()
+	// Get a lock for the Network Connection.
+	cmd.ctx.connMu.Lock()
+	defer cmd.ctx.connMu.Unlock()
+
+	// Check the state of the Network Connection.
+	if atomic.LoadUint32(&cmd.ctx.connState) != connStateClosed {
+		return client.ErrAlreadyConnected
+	}
 
 	// Try to establish a Network Connection to the Server and
 	// send a CONNECT Packet to the Server.
 	if err := cmd.ctx.cli.Connect(cmd.network, cmd.address, cmd.connectOpts); err != nil {
 		return err
 	}
-
-	// Launch a goroutine which sends a Packet to the Server.
-	go func() {
-		defer func() {
-			// Send an ended signal.
-			cmd.ctx.sendEndedc <- struct{}{}
-		}()
-
-	SendLoop:
-		for {
-			var keepAlive <-chan time.Time
-			if *cmd.connectOpts.KeepAlive > 0 {
-				keepAlive = time.After(time.Duration(*cmd.connectOpts.KeepAlive) * time.Second)
-			}
-
-			select {
-			case p := <-cmd.ctx.sendc:
-				// Send the Packet to the Server.
-				if err := sendWithLock(cmd.ctx, p); err != nil {
-					disconnectWithErr(cmd.ctx, err)
-
-					break SendLoop
-				}
-			case <-keepAlive:
-				// Send a PINGREQ Packet to the Server.
-				if err := sendWithLock(cmd.ctx, packet.NewPINGREQ()); err != nil {
-					disconnectWithErr(cmd.ctx, err)
-
-					break SendLoop
-				}
-			case <-cmd.ctx.sendEndc:
-				return
-			}
-		}
-
-		// Wait for the end signal.
-		<-cmd.ctx.sendEndc
-	}()
-
-	// Launch a goroutine which reads data from the Network Connection.
-	go func() {
-		defer func() {
-			// Send an ended signal.
-			cmd.ctx.readEndedc <- struct{}{}
-		}()
-
-		for {
-			p, err := cmd.ctx.cli.Receive()
-			if err != nil {
-				disconnectWithErr(cmd.ctx, err)
-
-				return
-			}
-
-			cmd.ctx.recvc <- p
-		}
-	}()
-
-	// Launch a goroutine which monitors the arrival of the CONNACK Packet if connackTimeout > 0.
-	go func() {
-		defer func() {
-			// Send an ended signal.
-			cmd.ctx.connackEndedc <- struct{}{}
-		}()
-
-		var timeout <-chan time.Time
-
-		if cmd.connackTimeout > 0 {
-			timeout = time.After(cmd.connackTimeout * time.Second)
-		}
-
-		select {
-		case <-cmd.ctx.connackc:
-		case <-timeout:
-			disconnectWithErr(cmd.ctx, errCONNACKTimeout)
-		case <-cmd.ctx.connackEndc:
-			return
-		}
-
-		// Wait for the end signal.
-		<-cmd.ctx.connackEndc
-	}()
-
-	// Launch a goroutine which handles a Packet received from the Server.
-	go func() {
-		defer func() {
-			// Send an ended signal.
-			cmd.ctx.recvEndedc <- struct{}{}
-		}()
-
-		for {
-			select {
-			case p := <-cmd.ctx.recvc:
-				ptype, err := p.Type()
-				if err != nil {
-					go func() {
-						cmd.ctx.errc <- err
-					}()
-
-					continue
-				}
-
-				switch ptype {
-				case packet.TypeCONNACK:
-					// Notify the arrival of the CONNACK Packet.
-					cmd.ctx.connackc <- struct{}{}
-				}
-			case <-cmd.ctx.recvEndc:
-				return
-			}
-		}
-	}()
 
 	return nil
 }
@@ -211,16 +107,4 @@ func newCommandConn(args []string, ctx *context) (*commandConn, error) {
 
 	// Return the command.
 	return cmd, nil
-}
-
-func disconnectWithErr(ctx *context, err error) {
-	// Disconnect the Network Connection.
-	go func() {
-		ctx.disconnc <- struct{}{}
-	}()
-
-	// Send the error to the error channel.
-	go func() {
-		ctx.errc <- err
-	}()
 }

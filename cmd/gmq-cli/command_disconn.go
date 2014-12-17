@@ -8,7 +8,7 @@ type commandDisconn struct {
 // run sends a DISCONNECT Packet to the Server and
 // disconnects the Network Connection.
 func (cmd *commandDisconn) run() error {
-	return disconnectWithLock(cmd.ctx)
+	return nil
 }
 
 // newCommandDisconn creates and returns a disconn command.

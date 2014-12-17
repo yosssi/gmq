@@ -38,26 +38,6 @@ func main() {
 	// Create a context.
 	ctx := newContext()
 
-	// Launch a goroutine which handles an error.
-	go func() {
-		for err := range ctx.errc {
-			os.Stderr.WriteString("\n")
-			printError(err)
-			printHeader()
-		}
-	}()
-
-	// Launch a goroutine which disconnects the Network Connection.
-	go func() {
-		for range ctx.disconnc {
-			if err := disconnectWithLock(ctx); err != nil {
-				go func() {
-					ctx.errc <- err
-				}()
-			}
-		}
-	}()
-
 	// Create a scanner which reads lines from standard input.
 	scanner := bufio.NewScanner(stdin)
 
@@ -88,11 +68,6 @@ func main() {
 		// Print the successful message.
 		printSuccess(cmdName)
 	}
-}
-
-// printVersion prints the version of GMQ Client to standard output.
-func printVersion() {
-	fmt.Printf("GMQ Client %s\n", version)
 }
 
 // printHeader prints the command-line input header to standard output.
