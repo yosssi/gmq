@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/yosssi/gmq/mqtt"
+	"github.com/yosssi/gmq/mqtt/client"
 	"github.com/yosssi/gmq/mqtt/packet"
 )
 
@@ -34,6 +35,11 @@ type commandConn struct {
 // run tries to establish a Network Connection to the Server and
 // sends a CONNECT Packet to the Server.
 func (cmd *commandConn) run() error {
+	// Return an error if the Client has already connected to the Server.
+	if cmd.ctx.isConnected() {
+		return client.ErrAlreadyConnected
+	}
+
 	// Try to establish a Network Connection to the Server and
 	// send a CONNECT Packet to the Server.
 	if err := cmd.connect(); err != nil {
@@ -55,7 +61,16 @@ func (cmd *commandConn) connect() error {
 	cmd.ctx.mu.Lock()
 	defer cmd.ctx.mu.Unlock()
 
-	return cmd.ctx.cli.Connect(cmd.network, cmd.address, cmd.connectOpts)
+	// Establish a Network Connection to the Server and
+	// send a CONNECT Packet to the Server.
+	if err := cmd.ctx.cli.Connect(cmd.network, cmd.address, cmd.connectOpts); err != nil {
+		return err
+	}
+
+	// Set the connected state true.
+	cmd.ctx.connected = true
+
+	return nil
 }
 
 // receive receives an MQTT Control Packet from the Server.
@@ -69,7 +84,7 @@ func (cmd *commandConn) receive(f func()) {
 		p, err := cmd.ctx.cli.Receive()
 		if err != nil {
 			// Ignore the error and end this function if the Network Connection is not connected.
-			if !cmd.ctx.getConnected() {
+			if !cmd.ctx.isConnected() {
 				return
 			}
 

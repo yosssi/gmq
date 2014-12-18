@@ -1,5 +1,7 @@
 package main
 
+import "github.com/yosssi/gmq/mqtt/client"
+
 // commandDisconn represents a disconn command.
 type commandDisconn struct {
 	ctx *context
@@ -8,6 +10,11 @@ type commandDisconn struct {
 // run sends a DISCONNECT Packet to the Server and
 // disconnects the Network Connection.
 func (cmd *commandDisconn) run() error {
+	// Return an error if the Client has not yet connected to the Server.
+	if !cmd.ctx.isConnected() {
+		return client.ErrNotYetConnected
+	}
+
 	return disconnect(cmd.ctx)
 }
 

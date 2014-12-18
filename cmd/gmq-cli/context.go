@@ -15,8 +15,8 @@ type context struct {
 	wg sync.WaitGroup
 }
 
-// getConnected returns the value of the connected state.
-func (ctx *context) getConnected() bool {
+// isConnected returns the value of the connected state.
+func (ctx *context) isConnected() bool {
 	// Lock for reading.
 	ctx.mu.RLock()
 	defer ctx.mu.RUnlock()
