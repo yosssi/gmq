@@ -36,6 +36,18 @@ func main() {
 	// Create a context.
 	ctx := newContext()
 
+	// Launch a goroutine which disconnects the Network Connection.
+	go func() {
+		for {
+			select {
+			case <-ctx.disconn:
+				if err := disconnect(ctx); err != nil {
+					printError(err)
+				}
+			}
+		}
+	}()
+
 	// Create a scanner which reads lines from standard input.
 	scanner := bufio.NewScanner(stdin)
 

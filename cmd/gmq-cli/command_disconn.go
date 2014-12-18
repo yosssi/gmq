@@ -1,6 +1,9 @@
 package main
 
-import "github.com/yosssi/gmq/mqtt/client"
+import "errors"
+
+// Error value
+var errDisconnSig = errors.New("disconnect signal could not be sent to the channel")
 
 // commandDisconn represents a disconn command.
 type commandDisconn struct {
@@ -10,11 +13,6 @@ type commandDisconn struct {
 // run sends a DISCONNECT Packet to the Server and
 // disconnects the Network Connection.
 func (cmd *commandDisconn) run() error {
-	// Return an error if the Client has not yet connected to the Server.
-	if !cmd.ctx.isConnected() {
-		return client.ErrNotYetConnected
-	}
-
 	return disconnect(cmd.ctx)
 }
 
@@ -27,49 +25,29 @@ func newCommandDisconn(ctx *context) *commandDisconn {
 
 // disconnect disconnects the Network Connection.
 func disconnect(ctx *context) error {
-	// Close the Network Connection.
-	if err := closeConn(ctx); err != nil {
+	// Lock for the disconnection.
+	ctx.mu.Lock()
+
+	// Disconnect the Netwrok Connection.
+	err := ctx.cli.Disconnect()
+
+	// Unlock.
+	ctx.mu.Unlock()
+
+	if err != nil {
 		return err
 	}
 
-	// Wait until all goroutines which are accessing to the Network Connection end.
-	ctx.wg.Wait()
+	// TODO: Wait for the completion of other goroutines.
+
+	// Lock for clearance of the Network Connection.
+	ctx.mu.Lock()
 
 	// Clear the Network Connection.
-	clearConn(ctx)
-
-	return nil
-}
-
-// closeConn closes the Network Connection.
-func closeConn(ctx *context) error {
-	// Lock for disconnecting the Network Connection.
-	ctx.mu.Lock()
-	defer ctx.mu.Unlock()
-
-	// Backup the current connected state.
-	backedConnected := ctx.connected
-
-	// Set the connected state false.
-	ctx.connected = false
-
-	// Disconnect the Network Connection.
-	if err := ctx.cli.Disconnect(); err != nil {
-		// Restore the connected state.
-		ctx.connected = backedConnected
-
-		// Return the error.
-		return err
-	}
-
-	return nil
-}
-
-// clearConn clears the Netwrok Connection.
-func clearConn(ctx *context) {
-	// Lock for clearing the Network Connection.
-	ctx.mu.Lock()
-	defer ctx.mu.Unlock()
-
 	ctx.cli.ClearConnection()
+
+	// Unlock.
+	ctx.mu.Unlock()
+
+	return nil
 }

@@ -1,14 +1,13 @@
 package main
 
 import (
+	"errors"
 	"flag"
-	"fmt"
 	"os"
 	"strconv"
 	"time"
 
 	"github.com/yosssi/gmq/mqtt"
-	"github.com/yosssi/gmq/mqtt/client"
 	"github.com/yosssi/gmq/mqtt/packet"
 )
 
@@ -20,14 +19,21 @@ const (
 	defaultCONNACKTimeout uint = 30
 )
 
+// Timeout in seconds for sending the connacked signal
+const connackedSigTimeout = 1
+
 // Hostname
 var hostname, _ = os.Hostname()
+
+// Error value
+var errCONNACKTimeout = errors.New("the CONNACK Packet was not received within a reasonalbe amount of time")
 
 // commandConn represents a conn command.
 type commandConn struct {
 	ctx            *context
 	network        string
 	address        string
+	connacked      chan struct{}
 	connackTimeout time.Duration
 	connectOpts    *packet.CONNECTOptions
 }
@@ -35,93 +41,125 @@ type commandConn struct {
 // run tries to establish a Network Connection to the Server and
 // sends a CONNECT Packet to the Server.
 func (cmd *commandConn) run() error {
-	// Return an error if the Client has already connected to the Server.
-	if cmd.ctx.isConnected() {
-		return client.ErrAlreadyConnected
-	}
-
-	// Try to establish a Network Connection to the Server and
-	// send a CONNECT Packet to the Server.
-	if err := cmd.connect(); err != nil {
-		return err
-	}
-
-	// Launch a goroutine which receives an MQTT Control Packet
-	// from the Server.
-	cmd.ctx.wg.Add(1)
-	go cmd.receive(cmd.ctx.wg.Done)
-
-	return nil
-}
-
-// connect tries to establish a Network Connection to the Server and
-// sends a CONNECT Packet to the Server.
-func (cmd *commandConn) connect() error {
-	// Lock for connecting to the Server.
+	// Lock for the connection.
 	cmd.ctx.mu.Lock()
-	defer cmd.ctx.mu.Unlock()
 
-	// Establish a Network Connection to the Server and
+	// Try  to establish a Network Connection to the Server and
 	// send a CONNECT Packet to the Server.
-	if err := cmd.ctx.cli.Connect(cmd.network, cmd.address, cmd.connectOpts); err != nil {
+	err := cmd.ctx.cli.Connect(cmd.network, cmd.address, cmd.connectOpts)
+
+	// Unlock.
+	cmd.ctx.mu.Unlock()
+
+	if err != nil {
 		return err
 	}
 
-	// Set the connected state true.
-	cmd.ctx.connected = true
+	// Launch a goroutine which waits for receiving the CONNACK Packet.
+	go cmd.waitCONNACK()
+
+	// Launch a goroutine which receives a Packet from the Server.
+	go cmd.receive()
+
+	// Launch a goroutine which sends a Packet to the Server.
+	go cmd.send()
 
 	return nil
 }
 
-// receive receives an MQTT Control Packet from the Server.
-func (cmd *commandConn) receive(f func()) {
-	if f != nil {
-		defer f()
+// waitCONNACK waits for receiving the CONNACK Packet.
+func (cmd *commandConn) waitCONNACK() {
+	var timeout <-chan time.Time
+
+	if cmd.connackTimeout > 0 {
+		timeout = time.After(cmd.connackTimeout * time.Second)
 	}
 
+	select {
+	case <-cmd.ctx.connack:
+	case <-timeout:
+		printError(errCONNACKTimeout)
+
+		// Send a disconnect signal to the channel if possible.
+		cmd.ctx.disconn <- struct{}{}
+	}
+}
+
+// receive receives a Packet from the Server.
+func (cmd *commandConn) receive() {
 	for {
-		// Receive an MQTT Control Packet from the Server.
+		// Receive a Packet from the Network Connection.
 		p, err := cmd.ctx.cli.Receive()
 		if err != nil {
-			// Ignore the error and end this function if the Network Connection is not connected.
-			if !cmd.ctx.isConnected() {
-				return
-			}
-
-			// Print the error.
 			printError(err)
 
-			// Disconnect the Network Connection.
-			if err := disconnect(cmd.ctx); err != nil {
-				printError(err)
+			// Send a disconnect signal to the channel if possible.
+			select {
+			case cmd.ctx.disconn <- struct{}{}:
+			default:
 			}
 
 			return
 		}
 
-		// Launch a goroutine which handles the Packet.
-		cmd.ctx.wg.Add(1)
-		go cmd.handle(p, cmd.ctx.wg.Done)
+		// Handle the Packet.
+		if err := cmd.handle(p); err != nil {
+			printError(err)
+		}
 	}
 }
 
-// handle handles an MQTT Control Packet.
-func (cmd *commandConn) handle(p packet.Packet, f func()) {
-	if f != nil {
-		defer f()
-	}
-
-	// Get the Packet type.
+// handle handles the Packet.
+func (cmd *commandConn) handle(p packet.Packet) error {
+	// Get the MQTT Control Packet type.
 	ptype, err := p.Type()
 	if err != nil {
-		printError(err)
-		return
+		return err
 	}
 
 	switch ptype {
 	case packet.TypeCONNACK:
-		// TODO
-		fmt.Println("CONNACK!!!")
+		// Notify the arrival of the CONNACK Packet if possible.
+		select {
+		case cmd.ctx.connack <- struct{}{}:
+		default:
+		}
+	}
+
+	return nil
+}
+
+// send sends the Packet to the Server.
+func (cmd *commandConn) send() {
+	for {
+		var keepAlive <-chan time.Time
+
+		if *cmd.connectOpts.KeepAlive > 0 {
+			keepAlive = time.After(time.Duration(*cmd.connectOpts.KeepAlive) * time.Second)
+		}
+
+		select {
+		case p := <-cmd.ctx.send:
+			cmd.sendPacket(p)
+		case <-keepAlive:
+			cmd.sendPacket(packet.NewPINGREQ())
+		}
+	}
+}
+
+// sendPacket sends the Packet to the Server.
+func (cmd *commandConn) sendPacket(p packet.Packet) {
+	// Lock for sending the Packet.
+	cmd.ctx.mu.RLock()
+
+	// Send the Packet to the Server.
+	err := cmd.ctx.cli.Send(p)
+
+	// Unlock.
+	cmd.ctx.mu.RUnlock()
+
+	if err != nil {
+		printError(err)
 	}
 }
 
@@ -159,6 +197,7 @@ func newCommandConn(args []string, ctx *context) (*commandConn, error) {
 		ctx:            ctx,
 		network:        *network,
 		address:        *host + ":" + strconv.Itoa(int(*port)),
+		connacked:      make(chan struct{}),
 		connackTimeout: time.Duration(*connackTimeout),
 		connectOpts: &packet.CONNECTOptions{
 			ClientID:     *clientID,
