@@ -8,9 +8,21 @@ import (
 
 // context represents a context of GMQ Client.
 type context struct {
-	cli     *client.Client
-	closing bool
-	mu      sync.RWMutex
+	mu        sync.RWMutex
+	cli       *client.Client
+	connected bool
+
+	wg sync.WaitGroup
+}
+
+// getConnected returns the value of the connected state.
+func (ctx *context) getConnected() bool {
+	// Lock for reading.
+	ctx.mu.RLock()
+	defer ctx.mu.RUnlock()
+
+	// Return the value of the connected state.
+	return ctx.connected
 }
 
 // newContext creates and returns a context.
