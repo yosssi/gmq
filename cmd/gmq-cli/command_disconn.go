@@ -38,13 +38,28 @@ func disconnect(ctx *context) error {
 		return err
 	}
 
-	// TODO: Wait for the completion of other goroutines.
+	// Send the end signals to the channels.
+	select {
+	case ctx.connackEnd <- struct{}{}:
+	default:
+	}
+
+	select {
+	case ctx.sendEnd <- struct{}{}:
+	default:
+	}
+
+	// Wait until all goroutines end.
+	ctx.wg.Wait()
 
 	// Lock for clearance of the Network Connection.
 	ctx.mu.Lock()
 
 	// Clear the Network Connection.
 	ctx.cli.ClearConnection()
+
+	// Initialize the channels of the context.
+	ctx.initChan()
 
 	// Unlock.
 	ctx.mu.Unlock()

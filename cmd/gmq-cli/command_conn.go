@@ -56,12 +56,15 @@ func (cmd *commandConn) run() error {
 	}
 
 	// Launch a goroutine which waits for receiving the CONNACK Packet.
+	cmd.ctx.wg.Add(1)
 	go cmd.waitCONNACK()
 
 	// Launch a goroutine which receives a Packet from the Server.
+	cmd.ctx.wg.Add(1)
 	go cmd.receive()
 
 	// Launch a goroutine which sends a Packet to the Server.
+	cmd.ctx.wg.Add(1)
 	go cmd.send()
 
 	return nil
@@ -69,6 +72,8 @@ func (cmd *commandConn) run() error {
 
 // waitCONNACK waits for receiving the CONNACK Packet.
 func (cmd *commandConn) waitCONNACK() {
+	defer cmd.ctx.wg.Done()
+
 	var timeout <-chan time.Time
 
 	if cmd.connackTimeout > 0 {
@@ -82,11 +87,14 @@ func (cmd *commandConn) waitCONNACK() {
 
 		// Send a disconnect signal to the channel if possible.
 		cmd.ctx.disconn <- struct{}{}
+	case <-cmd.ctx.connackEnd:
 	}
 }
 
 // receive receives a Packet from the Server.
 func (cmd *commandConn) receive() {
+	defer cmd.ctx.wg.Done()
+
 	for {
 		// Receive a Packet from the Network Connection.
 		p, err := cmd.ctx.cli.Receive()
@@ -131,6 +139,8 @@ func (cmd *commandConn) handle(p packet.Packet) error {
 
 // send sends the Packet to the Server.
 func (cmd *commandConn) send() {
+	defer cmd.ctx.wg.Done()
+
 	for {
 		var keepAlive <-chan time.Time
 
@@ -143,6 +153,8 @@ func (cmd *commandConn) send() {
 			cmd.sendPacket(p)
 		case <-keepAlive:
 			cmd.sendPacket(packet.NewPINGREQ())
+		case <-cmd.ctx.sendEnd:
+			return
 		}
 	}
 }

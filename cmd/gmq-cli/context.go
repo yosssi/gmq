@@ -15,16 +15,30 @@ type context struct {
 	cli *client.Client
 
 	disconn chan struct{}
-	connack chan struct{}
-	send    chan packet.Packet
+
+	wg         sync.WaitGroup
+	connack    chan struct{}
+	connackEnd chan struct{}
+	send       chan packet.Packet
+	sendEnd    chan struct{}
+}
+
+// initChan initializes the channels of the context.
+func (ctx *context) initChan() {
+	ctx.connack = make(chan struct{}, 1)
+	ctx.connackEnd = make(chan struct{}, 1)
+	ctx.send = make(chan packet.Packet, sendBufSize)
+	ctx.sendEnd = make(chan struct{}, 1)
 }
 
 // newContext creates and returns a context.
 func newContext() *context {
-	return &context{
+	ctx := &context{
 		cli:     client.New(nil),
 		disconn: make(chan struct{}, 1),
-		connack: make(chan struct{}, 1),
-		send:    make(chan packet.Packet, sendBufSize),
 	}
+
+	ctx.initChan()
+
+	return ctx
 }
