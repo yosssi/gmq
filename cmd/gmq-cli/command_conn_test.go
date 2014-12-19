@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"io"
 	"testing"
 	"time"
 
@@ -12,6 +13,16 @@ import (
 const testAddress = "iot.eclipse.org:1883"
 
 var errTest = errors.New("test")
+
+type packetErr struct{}
+
+func (p packetErr) WriteTo(w io.Writer) (int64, error) {
+	return 0, errTest
+}
+
+func (p packetErr) Type() (byte, error) {
+	return 0x00, errTest
+}
 
 func Test_commandConn_run_err(t *testing.T) {
 	ctx := newContext()
@@ -112,7 +123,7 @@ func Test_commandConn_waitCONNACK_connackEnd(t *testing.T) {
 	cmd.ctx.wg.Wait()
 }
 
-func Test_commandCon_receive_ReceiveErr_disconnecting(t *testing.T) {
+func Test_commandConn_receive_ReceiveErr_disconnecting(t *testing.T) {
 	ctx := newContext()
 
 	cmd, err := newCommandConn(nil, ctx)
@@ -128,7 +139,7 @@ func Test_commandCon_receive_ReceiveErr_disconnecting(t *testing.T) {
 	cmd.ctx.wg.Wait()
 }
 
-func Test_commandCon_receive_ReceiveErr(t *testing.T) {
+func Test_commandConn_receive_ReceiveErr(t *testing.T) {
 	ctx := newContext()
 
 	cmd, err := newCommandConn(nil, ctx)
@@ -142,7 +153,7 @@ func Test_commandCon_receive_ReceiveErr(t *testing.T) {
 	cmd.ctx.wg.Wait()
 }
 
-func Test_commandCon_receive_ReceiveErr_default(t *testing.T) {
+func Test_commandConn_receive_ReceiveErr_default(t *testing.T) {
 	ctx := newContext()
 
 	cmd, err := newCommandConn(nil, ctx)
@@ -158,7 +169,7 @@ func Test_commandCon_receive_ReceiveErr_default(t *testing.T) {
 	cmd.ctx.wg.Wait()
 }
 
-func Test_commandCon_receive_handleErr(t *testing.T) {
+func Test_commandConn_receive_handleErr(t *testing.T) {
 	defer func(handleBak func(cmd *commandConn, p packet.Packet) error) {
 		handle = handleBak
 	}(handle)
@@ -183,7 +194,7 @@ func Test_commandCon_receive_handleErr(t *testing.T) {
 	cmd.ctx.wg.Add(1)
 	go cmd.receive()
 
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(time.Second)
 
 	if err := disconnect(cmd.ctx); err != nil {
 		t.Errorf("err => %q, want => nil", err)
@@ -192,7 +203,7 @@ func Test_commandCon_receive_handleErr(t *testing.T) {
 	cmd.ctx.wg.Wait()
 }
 
-func Test_commandCon_receive(t *testing.T) {
+func Test_commandConn_receive(t *testing.T) {
 	ctx := newContext()
 
 	cmd, err := newCommandConn(nil, ctx)
@@ -209,11 +220,24 @@ func Test_commandCon_receive(t *testing.T) {
 	cmd.ctx.wg.Add(1)
 	go cmd.receive()
 
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(time.Second)
 
 	if err := disconnect(cmd.ctx); err != nil {
 		t.Errorf("err => %q, want => nil", err)
 	}
 
 	cmd.ctx.wg.Wait()
+}
+
+func Test_commandConn_handle_err(t *testing.T) {
+	ctx := newContext()
+
+	cmd, err := newCommandConn(nil, ctx)
+	if err != nil {
+		t.Errorf("err => %q, want => nil", err)
+	}
+
+	if err := cmd.handle(packetErr{}); err != errTest {
+		errorfErr(t, err, errTest)
+	}
 }
