@@ -23,7 +23,7 @@ var (
 // another function value will be assigned to this global variable
 // while testing.
 var closeConn = func(cli *Client) error {
-	return cli.close()
+	return cli.Close()
 }
 
 // sendDISCONNECT calls the Client's sendDISCONNECT method.
@@ -56,6 +56,9 @@ func (cli *Client) Connect(network, address string, packetOpts *packet.CONNECTOp
 		if anotherErr := closeConn(cli); anotherErr != nil {
 			return fmt.Errorf(strErrMulti, anotherErr, err)
 		}
+
+		// Clear the Session.
+		cli.ClearConnection()
 
 		return err
 	}
@@ -157,6 +160,21 @@ func (cli *Client) Receive() (packet.Packet, error) {
 	return packet.NewFromBytes(fixedHeader, remaining)
 }
 
+// Close closes the Network Connection.
+func (cli *Client) Close() error {
+	// Return an error if the Client has not yet connected to the Server.
+	if cli.conn == nil {
+		return ErrNotYetConnected
+	}
+
+	// Close the Network Connection.
+	if err := cli.conn.Close(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // establish tries to establish a Network Connection to the Server.
 func (cli *Client) establish(network, address string) error {
 	// Return an error if the Client has already connected to the Server.
@@ -172,21 +190,6 @@ func (cli *Client) establish(network, address string) error {
 
 	// Set the Network Connection to the Client.
 	cli.conn = conn
-
-	return nil
-}
-
-// close closes the Network Connection.
-func (cli *Client) close() error {
-	// Return an error if the Client has not yet connected to the Server.
-	if cli.conn == nil {
-		return ErrNotYetConnected
-	}
-
-	// Close the Network Connection.
-	if err := cli.conn.Close(); err != nil {
-		return err
-	}
 
 	return nil
 }

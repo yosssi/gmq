@@ -363,10 +363,10 @@ func TestClient_establish(t *testing.T) {
 	}
 }
 
-func TestClient_close_errNotYetConnected(t *testing.T) {
+func TestClient_Close_errNotYetConnected(t *testing.T) {
 	cli := &Client{}
 
-	if err := cli.close(); err != ErrNotYetConnected {
+	if err := cli.Close(); err != ErrNotYetConnected {
 		if err == nil {
 			t.Errorf("err => nil, want => %q", ErrNotYetConnected)
 		} else {
@@ -375,14 +375,14 @@ func TestClient_close_errNotYetConnected(t *testing.T) {
 	}
 }
 
-func TestClient_close_closeErr(t *testing.T) {
+func TestClient_Close_closeErr(t *testing.T) {
 	cli := &Client{
 		conn: &mqtt.Connection{
 			Conn: &errConn{},
 		},
 	}
 
-	if err := cli.close(); err != errTest {
+	if err := cli.Close(); err != errTest {
 		if err == nil {
 			t.Errorf("err => nil, want => %q", errTest)
 		} else {

@@ -42,7 +42,7 @@ func main() {
 			select {
 			case <-ctx.disconn:
 				if err := disconnect(ctx); err != nil {
-					printError(err)
+					printError(err, true)
 				}
 			}
 		}
@@ -64,13 +64,13 @@ func main() {
 		// Create a command.
 		cmd, err := newCommand(cmdName, cmdArgs, ctx)
 		if err != nil {
-			printError(err)
+			printError(err, false)
 			continue
 		}
 
 		// Run the command.
 		if err := cmd.run(); err != nil {
-			printError(err)
+			printError(err, false)
 			continue
 		}
 
@@ -95,10 +95,14 @@ func printSuccess(cmdName string) {
 }
 
 // printError prints the error to the standard error.
-func printError(err error) {
+func printError(err error, fromGoroutine bool) {
 	// Do nothing is the error is errCmdArgsParse.
 	if err == errCmdArgsParse {
 		return
+	}
+
+	if fromGoroutine {
+		os.Stdout.WriteString("\n")
 	}
 
 	fmt.Fprintln(os.Stderr, err)
@@ -107,6 +111,10 @@ func printError(err error) {
 	if err == errInvalidCmdName {
 		fmt.Println()
 		printHelp()
+	}
+
+	if fromGoroutine {
+		printHeader()
 	}
 }
 

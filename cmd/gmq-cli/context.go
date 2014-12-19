@@ -11,8 +11,9 @@ const sendBufSize = 1024
 
 // context represents a context of GMQ Client.
 type context struct {
-	mu  sync.RWMutex
-	cli *client.Client
+	mu            sync.RWMutex
+	cli           *client.Client
+	disconnecting bool
 
 	disconn chan struct{}
 

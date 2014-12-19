@@ -83,10 +83,13 @@ func (cmd *commandConn) waitCONNACK() {
 	select {
 	case <-cmd.ctx.connack:
 	case <-timeout:
-		printError(errCONNACKTimeout)
+		printError(errCONNACKTimeout, true)
 
 		// Send a disconnect signal to the channel if possible.
-		cmd.ctx.disconn <- struct{}{}
+		select {
+		case cmd.ctx.disconn <- struct{}{}:
+		default:
+		}
 	case <-cmd.ctx.connackEnd:
 	}
 }
@@ -99,7 +102,12 @@ func (cmd *commandConn) receive() {
 		// Receive a Packet from the Network Connection.
 		p, err := cmd.ctx.cli.Receive()
 		if err != nil {
-			printError(err)
+			// Ignore the error and end the process while disconnecting.
+			if cmd.disconnecting() {
+				return
+			}
+
+			printError(err, true)
 
 			// Send a disconnect signal to the channel if possible.
 			select {
@@ -107,12 +115,13 @@ func (cmd *commandConn) receive() {
 			default:
 			}
 
+			// End the process.
 			return
 		}
 
 		// Handle the Packet.
 		if err := cmd.handle(p); err != nil {
-			printError(err)
+			printError(err, true)
 		}
 	}
 }
@@ -171,8 +180,31 @@ func (cmd *commandConn) sendPacket(p packet.Packet) {
 	cmd.ctx.mu.RUnlock()
 
 	if err != nil {
-		printError(err)
+		// Ignore the error and end the process while disconnecting.
+		if cmd.disconnecting() {
+			return
+		}
+
+		printError(err, true)
+
+		// Send a disconnect signal to the channel if possible.
+		select {
+		case cmd.ctx.disconn <- struct{}{}:
+		default:
+		}
 	}
+}
+
+// disconnecting returns the disconnecting flag.
+func (cmd *commandConn) disconnecting() bool {
+	// Lock for reading.
+	cmd.ctx.mu.RLock()
+
+	// Unlock.
+	defer cmd.ctx.mu.RUnlock()
+
+	// Return the disconnecting flag.
+	return cmd.ctx.disconnecting
 }
 
 // newCommandConn creates and returns a conn command.

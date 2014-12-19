@@ -1,6 +1,10 @@
 package main
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/yosssi/gmq/mqtt/client"
+)
 
 // Error value
 var errDisconnSig = errors.New("disconnect signal could not be sent to the channel")
@@ -28,15 +32,27 @@ func disconnect(ctx *context) error {
 	// Lock for the disconnection.
 	ctx.mu.Lock()
 
-	// Disconnect the Netwrok Connection.
-	err := ctx.cli.Disconnect()
+	// Disconnect the Network Connection.
+	if err := ctx.cli.Disconnect(); err != nil {
+		if err == client.ErrNotYetConnected {
+			// Unlock.
+			ctx.mu.Unlock()
+
+			return err
+		}
+
+		// Close the Network Connection directly because
+		// sending a DISCONNECT Packet to the Server failed.
+		if err := ctx.cli.Close(); err != nil {
+			printError(err, true)
+		}
+	}
+
+	// Set the disconnecting flag true.
+	ctx.disconnecting = true
 
 	// Unlock.
 	ctx.mu.Unlock()
-
-	if err != nil {
-		return err
-	}
 
 	// Send the end signals to the channels.
 	select {
@@ -60,6 +76,9 @@ func disconnect(ctx *context) error {
 
 	// Initialize the channels of the context.
 	ctx.initChan()
+
+	// Set the disconnecting flag false.
+	ctx.disconnecting = true
 
 	// Unlock.
 	ctx.mu.Unlock()
