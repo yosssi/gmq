@@ -1,8 +1,17 @@
 package main
 
-import "testing"
+import (
+	"errors"
+	"testing"
+	"time"
+
+	"github.com/yosssi/gmq/mqtt/client"
+	"github.com/yosssi/gmq/mqtt/packet"
+)
 
 const testAddress = "iot.eclipse.org:1883"
+
+var errTest = errors.New("test")
 
 func Test_commandConn_run_err(t *testing.T) {
 	ctx := newContext()
@@ -29,6 +38,10 @@ func Test_commandConn_run(t *testing.T) {
 	cmd.address = testAddress
 
 	if err := cmd.run(); err != nil {
+		t.Error("err => %q, want => nil", err)
+	}
+
+	if err := disconnect(cmd.ctx); err != nil {
 		t.Error("err => %q, want => nil", err)
 	}
 }
@@ -125,6 +138,82 @@ func Test_commandCon_receive_ReceiveErr(t *testing.T) {
 
 	cmd.ctx.wg.Add(1)
 	go cmd.receive()
+
+	cmd.ctx.wg.Wait()
+}
+
+func Test_commandCon_receive_ReceiveErr_default(t *testing.T) {
+	ctx := newContext()
+
+	cmd, err := newCommandConn(nil, ctx)
+	if err != nil {
+		t.Errorf("err => %q, want => nil", err)
+	}
+
+	cmd.ctx.disconn <- struct{}{}
+
+	cmd.ctx.wg.Add(1)
+	go cmd.receive()
+
+	cmd.ctx.wg.Wait()
+}
+
+func Test_commandCon_receive_handleErr(t *testing.T) {
+	defer func(handleBak func(cmd *commandConn, p packet.Packet) error) {
+		handle = handleBak
+	}(handle)
+
+	handle = func(_ *commandConn, _ packet.Packet) error {
+		return errTest
+	}
+
+	ctx := newContext()
+
+	cmd, err := newCommandConn(nil, ctx)
+	if err != nil {
+		t.Errorf("err => %q, want => nil", err)
+	}
+
+	ctx.cli = client.New(nil)
+
+	if err := ctx.cli.Connect("tcp", testAddress, nil); err != nil {
+		t.Errorf("err => %q, want => nil", err)
+	}
+
+	cmd.ctx.wg.Add(1)
+	go cmd.receive()
+
+	time.Sleep(500 * time.Millisecond)
+
+	if err := disconnect(cmd.ctx); err != nil {
+		t.Errorf("err => %q, want => nil", err)
+	}
+
+	cmd.ctx.wg.Wait()
+}
+
+func Test_commandCon_receive(t *testing.T) {
+	ctx := newContext()
+
+	cmd, err := newCommandConn(nil, ctx)
+	if err != nil {
+		t.Errorf("err => %q, want => nil", err)
+	}
+
+	ctx.cli = client.New(nil)
+
+	if err := ctx.cli.Connect("tcp", testAddress, nil); err != nil {
+		t.Errorf("err => %q, want => nil", err)
+	}
+
+	cmd.ctx.wg.Add(1)
+	go cmd.receive()
+
+	time.Sleep(500 * time.Millisecond)
+
+	if err := disconnect(cmd.ctx); err != nil {
+		t.Errorf("err => %q, want => nil", err)
+	}
 
 	cmd.ctx.wg.Wait()
 }

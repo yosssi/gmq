@@ -28,6 +28,14 @@ var hostname, _ = os.Hostname()
 // Error value
 var errCONNACKTimeout = errors.New("the CONNACK Packet was not received within a reasonalbe amount of time")
 
+// handle handles the Packet.
+// This global variable is defined to make writing tests easy and
+// another function value will be assigned to this global variable
+// while testing.
+var handle = func(cmd *commandConn, p packet.Packet) error {
+	return cmd.handle(p)
+}
+
 // commandConn represents a conn command.
 type commandConn struct {
 	ctx            *context
@@ -120,7 +128,7 @@ func (cmd *commandConn) receive() {
 		}
 
 		// Handle the Packet.
-		if err := cmd.handle(p); err != nil {
+		if err := handle(cmd, p); err != nil {
 			printError(err, true)
 		}
 	}
