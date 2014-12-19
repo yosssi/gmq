@@ -95,13 +95,13 @@ func printSuccess(cmdName string) {
 }
 
 // printError prints the error to the standard error.
-func printError(err error, fromGoroutine bool) {
+func printError(err error, async bool) {
 	// Do nothing is the error is errCmdArgsParse.
 	if err == errCmdArgsParse {
 		return
 	}
 
-	if fromGoroutine {
+	if async {
 		os.Stdout.WriteString("\n")
 	}
 
@@ -113,7 +113,7 @@ func printError(err error, fromGoroutine bool) {
 		printHelp()
 	}
 
-	if fromGoroutine {
+	if async {
 		printHeader()
 	}
 }
