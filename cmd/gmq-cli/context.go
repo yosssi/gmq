@@ -15,7 +15,9 @@ type context struct {
 	cli           *client.Client
 	disconnecting bool
 
-	disconn chan struct{}
+	wgMain     sync.WaitGroup
+	disconn    chan struct{}
+	disconnEnd chan struct{}
 
 	wg         sync.WaitGroup
 	connack    chan struct{}
@@ -35,8 +37,9 @@ func (ctx *context) initChan() {
 // newContext creates and returns a context.
 func newContext() *context {
 	ctx := &context{
-		cli:     client.New(nil),
-		disconn: make(chan struct{}, 1),
+		cli:        client.New(nil),
+		disconn:    make(chan struct{}, 1),
+		disconnEnd: make(chan struct{}, 1),
 	}
 
 	ctx.initChan()

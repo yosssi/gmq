@@ -37,16 +37,8 @@ func main() {
 	ctx := newContext()
 
 	// Launch a goroutine which disconnects the Network Connection.
-	go func() {
-		for {
-			select {
-			case <-ctx.disconn:
-				if err := disconnect(ctx); err != nil {
-					printError(err, true)
-				}
-			}
-		}
-	}()
+	ctx.wgMain.Add(1)
+	go disconn(ctx)
 
 	// Create a scanner which reads lines from standard input.
 	scanner := bufio.NewScanner(stdin)
@@ -140,4 +132,22 @@ func cmdNameArgs(s string) (string, []string) {
 	}
 
 	return cmdName, cmdArgs
+}
+
+// disconn disconnects the Network Connection.
+func disconn(ctx *context) {
+	defer func() {
+		ctx.wgMain.Done()
+	}()
+
+	for {
+		select {
+		case <-ctx.disconn:
+			if err := disconnect(ctx); err != nil {
+				printError(err, true)
+			}
+		case <-ctx.disconnEnd:
+			return
+		}
+	}
 }
