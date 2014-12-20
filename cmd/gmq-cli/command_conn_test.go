@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"io"
+	"net"
 	"testing"
 	"time"
 
@@ -170,6 +171,25 @@ func Test_commandConn_receive_ReceiveErr_default(t *testing.T) {
 }
 
 func Test_commandConn_receive(t *testing.T) {
+	ln, err := net.Listen("tcp", "localhost:1883")
+	if err != nil {
+		t.Errorf("err => %q, want => nil", err)
+		return
+	}
+
+	defer ln.Close()
+
+	go func() {
+		for {
+			conn, err := ln.Accept()
+			if err != nil {
+				return
+			}
+
+			conn.Write([]byte{0x20, 0x02, 0x00, 0x00})
+		}
+	}()
+
 	ctx := newContext()
 
 	cmd, err := newCommandConn(nil, ctx)
@@ -179,7 +199,7 @@ func Test_commandConn_receive(t *testing.T) {
 
 	ctx.cli = client.New(nil)
 
-	if err := ctx.cli.Connect("tcp", testAddress, nil); err != nil {
+	if err := ctx.cli.Connect("tcp", "localhost:1883", nil); err != nil {
 		t.Errorf("err => %q, want => nil", err)
 	}
 
