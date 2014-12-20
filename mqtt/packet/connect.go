@@ -165,7 +165,7 @@ func NewCONNECT(opts *CONNECTOptions) (Packet, error) {
 	opts.Init()
 
 	// Check the Will QoS.
-	if opts.WillQoS != mqtt.QoS0 && opts.WillQoS != mqtt.QoS1 && opts.WillQoS != mqtt.QoS2 {
+	if !mqtt.ValidQoS(opts.WillQoS) {
 		return nil, ErrCONNECTInvalidWillQoS
 	}
 
