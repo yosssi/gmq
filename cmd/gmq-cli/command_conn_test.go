@@ -363,3 +363,9 @@ func Test_commandConn_sendPacket_default(t *testing.T) {
 
 	cmd.sendPacket(nil)
 }
+
+func Test_newCommandConn(t *testing.T) {
+	if _, err := newCommandConn([]string{"-not-exit-flag"}, newContext()); err != errCmdArgsParse {
+		errorfErr(t, err, errCmdArgsParse)
+	}
+}
