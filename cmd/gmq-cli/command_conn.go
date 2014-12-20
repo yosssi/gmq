@@ -28,14 +28,6 @@ var hostname, _ = os.Hostname()
 // Error value
 var errCONNACKTimeout = errors.New("the CONNACK Packet was not received within a reasonalbe amount of time")
 
-// handle handles the Packet.
-// This global variable is defined to make writing tests easy and
-// another function value will be assigned to this global variable
-// while testing.
-var handle = func(cmd *commandConn, p packet.Packet) error {
-	return cmd.handle(p)
-}
-
 // commandConn represents a conn command.
 type commandConn struct {
 	ctx            *context
@@ -128,18 +120,17 @@ func (cmd *commandConn) receive() {
 		}
 
 		// Handle the Packet.
-		if err := handle(cmd, p); err != nil {
-			printError(err, true)
-		}
+		cmd.handle(p)
 	}
 }
 
 // handle handles the Packet.
-func (cmd *commandConn) handle(p packet.Packet) error {
+func (cmd *commandConn) handle(p packet.Packet) {
 	// Get the MQTT Control Packet type.
 	ptype, err := p.Type()
 	if err != nil {
-		return err
+		printError(err, true)
+		return
 	}
 
 	switch ptype {
@@ -150,8 +141,6 @@ func (cmd *commandConn) handle(p packet.Packet) error {
 		default:
 		}
 	}
-
-	return nil
 }
 
 // send sends the Packet to the Server.

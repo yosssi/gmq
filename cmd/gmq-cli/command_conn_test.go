@@ -169,40 +169,6 @@ func Test_commandConn_receive_ReceiveErr_default(t *testing.T) {
 	cmd.ctx.wg.Wait()
 }
 
-func Test_commandConn_receive_handleErr(t *testing.T) {
-	defer func(handleBak func(cmd *commandConn, p packet.Packet) error) {
-		handle = handleBak
-	}(handle)
-
-	handle = func(_ *commandConn, _ packet.Packet) error {
-		return errTest
-	}
-
-	ctx := newContext()
-
-	cmd, err := newCommandConn(nil, ctx)
-	if err != nil {
-		t.Errorf("err => %q, want => nil", err)
-	}
-
-	ctx.cli = client.New(nil)
-
-	if err := ctx.cli.Connect("tcp", testAddress, nil); err != nil {
-		t.Errorf("err => %q, want => nil", err)
-	}
-
-	cmd.ctx.wg.Add(1)
-	go cmd.receive()
-
-	time.Sleep(time.Second)
-
-	if err := disconnect(cmd.ctx); err != nil {
-		t.Errorf("err => %q, want => nil", err)
-	}
-
-	cmd.ctx.wg.Wait()
-}
-
 func Test_commandConn_receive(t *testing.T) {
 	ctx := newContext()
 
@@ -220,7 +186,7 @@ func Test_commandConn_receive(t *testing.T) {
 	cmd.ctx.wg.Add(1)
 	go cmd.receive()
 
-	time.Sleep(time.Second)
+	time.Sleep(1 * time.Second)
 
 	if err := disconnect(cmd.ctx); err != nil {
 		t.Errorf("err => %q, want => nil", err)
@@ -237,7 +203,143 @@ func Test_commandConn_handle_err(t *testing.T) {
 		t.Errorf("err => %q, want => nil", err)
 	}
 
-	if err := cmd.handle(packetErr{}); err != errTest {
-		errorfErr(t, err, errTest)
+	cmd.handle(packetErr{})
+}
+
+func Test_commandConn_handle_default(t *testing.T) {
+	ctx := newContext()
+
+	cmd, err := newCommandConn(nil, ctx)
+	if err != nil {
+		t.Errorf("err => %q, want => nil", err)
 	}
+
+	p, err := packet.NewCONNACKFromBytes([]byte{0x20, 0x02}, []byte{0x00, 0x00})
+	if err != nil {
+		t.Errorf("err => %q, want => nil", err)
+	}
+
+	cmd.ctx.connack <- struct{}{}
+
+	cmd.handle(p)
+}
+
+func Test_commandConn_handle(t *testing.T) {
+	ctx := newContext()
+
+	cmd, err := newCommandConn(nil, ctx)
+	if err != nil {
+		t.Errorf("err => %q, want => nil", err)
+	}
+
+	p, err := packet.NewCONNACKFromBytes([]byte{0x20, 0x02}, []byte{0x00, 0x00})
+	if err != nil {
+		t.Errorf("err => %q, want => nil", err)
+	}
+
+	cmd.handle(p)
+}
+
+func Test_commandConn_send_send(t *testing.T) {
+	ctx := newContext()
+
+	cmd, err := newCommandConn(nil, ctx)
+	if err != nil {
+		t.Errorf("err => %q, want => nil", err)
+	}
+
+	ctx.cli = client.New(nil)
+
+	if err := ctx.cli.Connect("tcp", testAddress, nil); err != nil {
+		t.Errorf("err => %q, want => nil", err)
+	}
+
+	cmd.ctx.wg.Add(1)
+	go cmd.send()
+
+	cmd.ctx.send <- packet.NewPINGREQ()
+
+	time.Sleep(1 * time.Second)
+
+	cmd.ctx.sendEnd <- struct{}{}
+
+	cmd.ctx.wg.Wait()
+
+	if err := disconnect(cmd.ctx); err != nil {
+		t.Error("err => %q, want => nil", err)
+	}
+}
+
+func Test_commandConn_send_keepAlive(t *testing.T) {
+	ctx := newContext()
+
+	cmd, err := newCommandConn(nil, ctx)
+	if err != nil {
+		t.Errorf("err => %q, want => nil", err)
+	}
+
+	ctx.cli = client.New(nil)
+
+	if err := ctx.cli.Connect("tcp", testAddress, nil); err != nil {
+		t.Errorf("err => %q, want => nil", err)
+	}
+
+	var keepAlive uint = 1
+	cmd.connectOpts.KeepAlive = &keepAlive
+
+	cmd.ctx.wg.Add(1)
+	go cmd.send()
+
+	time.Sleep(2 * time.Second)
+
+	cmd.ctx.sendEnd <- struct{}{}
+
+	cmd.ctx.wg.Wait()
+
+	if err := disconnect(cmd.ctx); err != nil {
+		t.Error("err => %q, want => nil", err)
+	}
+}
+
+func Test_commandConn_sendPacket_disconnecting(t *testing.T) {
+	ctx := newContext()
+
+	cmd, err := newCommandConn(nil, ctx)
+	if err != nil {
+		t.Errorf("err => %q, want => nil", err)
+	}
+
+	ctx.cli = client.New(nil)
+
+	cmd.ctx.disconnecting = true
+
+	cmd.sendPacket(nil)
+}
+
+func Test_commandConn_sendPacket_disconn(t *testing.T) {
+	ctx := newContext()
+
+	cmd, err := newCommandConn(nil, ctx)
+	if err != nil {
+		t.Errorf("err => %q, want => nil", err)
+	}
+
+	ctx.cli = client.New(nil)
+
+	cmd.sendPacket(nil)
+}
+
+func Test_commandConn_sendPacket_default(t *testing.T) {
+	ctx := newContext()
+
+	cmd, err := newCommandConn(nil, ctx)
+	if err != nil {
+		t.Errorf("err => %q, want => nil", err)
+	}
+
+	ctx.cli = client.New(nil)
+
+	cmd.ctx.disconn <- struct{}{}
+
+	cmd.sendPacket(nil)
 }
