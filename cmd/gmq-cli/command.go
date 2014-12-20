@@ -7,6 +7,7 @@ const (
 	cmdNameConn    = "conn"
 	cmdNameDisconn = "disconn"
 	cmdNameHelp    = "help"
+	cmdNamePub     = "pub"
 )
 
 // Error values
@@ -29,6 +30,8 @@ func newCommand(cmdName string, cmdArgs []string, ctx *context) (command, error)
 		return newCommandDisconn(ctx), nil
 	case cmdNameHelp:
 		return newCommandHelp(), nil
+	case cmdNamePub:
+		return newCommandPub(cmdArgs, ctx)
 	}
 
 	return nil, errInvalidCmdName

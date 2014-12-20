@@ -26,4 +26,5 @@ func printHelp() {
 	fmt.Printf(strHelpFmt, cmdNameConn, "establish a Network Connection and send a CONNECT Packet to the Server")
 	fmt.Printf(strHelpFmt, cmdNameDisconn, "send a DISCONNECT Packet to the Server and disconnect the Network Connection")
 	fmt.Printf(strHelpFmt, cmdNameHelp, "print this help message")
+	fmt.Printf(strHelpFmt, cmdNamePub, "send a PUBLISH Packet to the Server")
 }

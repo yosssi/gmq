@@ -1,6 +1,10 @@
 package packet
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/yosssi/gmq/mqtt"
+)
 
 // Length of the Variable header of the CONNECT Packet.
 const lenCONNECTVariableHeader = 10
@@ -10,6 +14,7 @@ const protocolLevelVersion3_1_1 = 0x04
 
 // Error values
 var (
+	ErrCONNECTInvalidWillQoS        = errors.New("the Will QoS is invalid")
 	ErrCONNECTWillTopicMessageEmpty = errors.New("the Will Topic or the Will Message is empty")
 )
 
@@ -151,7 +156,7 @@ func appendCONNECTPayload(b []byte, s string) []byte {
 	return b
 }
 
-// NewCONNECT creates and returns the CONNECT Packet.
+// NewCONNECT creates and returns a CONNECT Packet.
 func NewCONNECT(opts *CONNECTOptions) (Packet, error) {
 	// Initialize the options.
 	if opts == nil {
@@ -159,12 +164,17 @@ func NewCONNECT(opts *CONNECTOptions) (Packet, error) {
 	}
 	opts.Init()
 
+	// Check the Will QoS.
+	if opts.WillQoS != mqtt.QoS0 && opts.WillQoS != mqtt.QoS1 && opts.WillQoS != mqtt.QoS2 {
+		return nil, ErrCONNECTInvalidWillQoS
+	}
+
 	// Check the Will Topic and the Will Message.
 	if (opts.WillTopic != "" && opts.WillMessage == "") || (opts.WillTopic == "" && opts.WillMessage != "") {
 		return nil, ErrCONNECTWillTopicMessageEmpty
 	}
 
-	// Create the CONNECT Packet.
+	// Create a CONNECT Packet.
 	p := &CONNECT{
 		ClientID:     opts.ClientID,
 		CleanSession: *opts.CleanSession,

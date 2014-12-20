@@ -175,6 +175,11 @@ func (cli *Client) Close() error {
 	return nil
 }
 
+// Connected returns true if the Client has a Network Connection.
+func (cli *Client) Connected() bool {
+	return cli.conn != nil
+}
+
 // establish tries to establish a Network Connection to the Server.
 func (cli *Client) establish(network, address string) error {
 	// Return an error if the Client has already connected to the Server.

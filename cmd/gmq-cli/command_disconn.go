@@ -77,8 +77,11 @@ func disconnect(ctx *context) error {
 	// Initialize the channels of the context.
 	ctx.initChan()
 
+	// Initialize packetID.
+	ctx.initPacketIDs()
+
 	// Set the disconnecting flag false.
-	ctx.disconnecting = true
+	ctx.disconnecting = false
 
 	// Unlock.
 	ctx.mu.Unlock()
