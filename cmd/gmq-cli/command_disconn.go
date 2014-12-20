@@ -44,7 +44,7 @@ func disconnect(ctx *context) error {
 		// Close the Network Connection directly because
 		// sending a DISCONNECT Packet to the Server failed.
 		if err := ctx.cli.Close(); err != nil {
-			printError(err, true)
+			return err
 		}
 	}
 
