@@ -50,11 +50,8 @@ func (p *PUBLISH) setFixedHeader() {
 	// Append the first bit to the Fixed header.
 	p.FixedHeader = append(p.FixedHeader, b)
 
-	// Calculate the Remaining Length.
-	rl := encodeLength(uint(len(p.VariableHeader) + len(p.Payload)))
-
-	// Append the Remaining Length to the slice and set it to the Fixed Header.
-	p.FixedHeader = appendRemainingLength(p.FixedHeader, rl)
+	// Append the Remaining Length to the Fixed Header.
+	p.appendRemainingLength()
 }
 
 // setVariableHeader sets the Variable header to the Packet.

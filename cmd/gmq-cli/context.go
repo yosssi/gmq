@@ -61,7 +61,8 @@ func (ctx *context) generatePacketID() (uint16, error) {
 	ctx.muPacketIds.Lock()
 	defer ctx.muPacketIds.Unlock()
 
-	for id := uint16(0); id <= maxPacketID; id++ {
+	var id uint16
+	for {
 		// Find an id which does not exist in packetIDs.
 		if _, exist := ctx.packetIDs[id]; !exist {
 			// Set the id to packetIDs.
@@ -69,6 +70,12 @@ func (ctx *context) generatePacketID() (uint16, error) {
 			// Return the id.
 			return id, nil
 		}
+
+		if id == maxPacketID {
+			break
+		}
+
+		id++
 	}
 
 	// Return an error if available ids are not found in packetIDs.

@@ -5,6 +5,8 @@ import "testing"
 func TestCONNECT_setFixedHeader(t *testing.T) {
 	p := &CONNECT{}
 
+	p.setVariableHeader()
+
 	p.setFixedHeader()
 
 	fh := p.FixedHeader
@@ -156,12 +158,24 @@ func TestNewCONNECT_optsNil(t *testing.T) {
 	}
 }
 
+func TestNewCONNECT_errCONNECTInvalidWillQoS(t *testing.T) {
+	if _, err := NewCONNECT(&CONNECTOptions{WillQoS: 3}); err != ErrCONNECTInvalidWillQoS {
+		errorfErr(t, err, ErrCONNECTInvalidWillQoS)
+	}
+}
+
 func TestNewCONNECT_errCONNECTWillTopicMessageEmpty(t *testing.T) {
 	if _, err := NewCONNECT(&CONNECTOptions{WillTopic: "willTopic"}); err != ErrCONNECTWillTopicMessageEmpty {
-		if err == nil {
-			t.Errorf("err => nil, want => %q", ErrCONNECTWillTopicMessageEmpty)
-		} else {
-			t.Errorf("err => %q, want => %q", err, ErrCONNECTWillTopicMessageEmpty)
-		}
+		errorfErr(t, err, ErrCONNECTWillTopicMessageEmpty)
+	}
+}
+
+func errorfErr(t *testing.T, err error, want error) {
+	if err == nil {
+		t.Errorf("err => nil, want => %q", want)
+
+	} else {
+		t.Errorf("err => %q, want => %q", err, want)
+
 	}
 }

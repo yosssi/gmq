@@ -391,7 +391,7 @@ func TestClient_Close_closeErr(t *testing.T) {
 	}
 }
 
-func TestClient_close_cleanSession(t *testing.T) {
+func TestClient_Disconnect_cleanSession(t *testing.T) {
 	cli := &Client{
 		sess: NewSession(nil),
 	}
@@ -405,6 +405,12 @@ func TestClient_close_cleanSession(t *testing.T) {
 
 	if err := cli.Disconnect(); err != nil {
 		t.Errorf("err => %q, want => nil", err)
+	}
+}
+
+func TestClient_Connected(t *testing.T) {
+	if got, want := (&Client{}).Connected(), false; got != want {
+		t.Errorf("got => %t, want => %t", got, want)
 	}
 }
 

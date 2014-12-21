@@ -43,14 +43,11 @@ type CONNECT struct {
 
 // setFixedHeader sets the Fixed header to the Packet.
 func (p *CONNECT) setFixedHeader() {
-	// Create a byte slice holding the Fixed header.
-	b := []byte{TypeCONNECT << 4}
+	// Append the first bit to the Fixed header.
+	p.FixedHeader = append(p.FixedHeader, TypeCONNECT<<4)
 
-	// Calculate the Remaining Length.
-	rl := encodeLength(uint(lenCONNECTVariableHeader + len(p.Payload)))
-
-	// Append the Remaining Length to the slice and set it to the Fixed Header.
-	p.FixedHeader = appendRemainingLength(b, rl)
+	// Append the Remaining Length to the Fixed Header.
+	p.appendRemainingLength()
 }
 
 // setVariableHeader sets the Variable header to the Packet.
