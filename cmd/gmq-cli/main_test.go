@@ -85,6 +85,8 @@ func Test_disconn(t *testing.T) {
 
 	ctx.disconn <- struct{}{}
 
+	ctx.disconn <- struct{}{}
+
 	ctx.disconnEnd <- struct{}{}
 
 	ctx.wgMain.Wait()
