@@ -12,13 +12,13 @@ type connect struct {
 	// cleanSession is the Clean Session of the variable header.
 	cleanSession bool
 	// keepAlive is the Keep Alive of the variable header.
-	keepAlive uint
+	keepAlive uint16
 	// willTopic is the Will Topic of the payload.
 	willTopic []byte
 	// willMessage is the Will Message of the payload.
 	willMessage []byte
 	// willQoS is the Will QoS of the variable header.
-	willQoS uint
+	willQoS byte
 	// willRetain is the Will Retain of the variable header.
 	willRetain bool
 }
