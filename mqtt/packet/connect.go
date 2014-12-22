@@ -23,6 +23,68 @@ type connect struct {
 	willRetain bool
 }
 
+// setVariableHeader sets the variable header to the Packet.
+func (p *connect) setVariableHeader() {
+	// Convert the Keep Alive to the slice.
+	keepAlive := encodeUint16(p.keepAlive)
+
+	// Create a variable header and set it to the Packet.
+	p.variableHeader = []byte{
+		0x00, // Length MSB (0)
+		0x04, // Length LSB (4)
+		0x4D, // 'M'
+		0x51, // 'Q'
+		0x54, // 'T'
+		0x54, // 'T'
+		0x04, // Level(4)
+		0x00,
+		keepAlive[0],
+		keepAlive[1],
+	}
+}
+
+// connectFlags creates and returns a byte which represents the Connect Flags.
+func (p *connect) connectFlags() byte {
+	// Create a byte which represents the Connect Flags.
+	var b byte
+
+	// Set 1 to the Bit 7 if the Packet has the User Name.
+	if len(p.userName) > 0 {
+		b |= 0x80
+	}
+
+	// Set 1 to the Bit 6 if the Packet has the Password.
+	if len(p.password) > 0 {
+		b |= 0x40
+	}
+
+	// Set 1 to the Bit 5 if the Will Retain is true.
+	if p.willRetain {
+		b |= 0x20
+	}
+
+	// Set the value of the Will QoS to the Bit 4 and 3.
+	b |= p.willQoS << 3
+
+	// Set 1 to the Bit 2 if the Packet has the Will Topic and the Will Message.
+	if p.will() {
+		b |= 0x04
+	}
+
+	// Set 1 to the Bit 1 if the Clean Session is true.
+	if p.cleanSession {
+		b |= 0x02
+	}
+
+	// Return the byte.
+	return b
+}
+
+// will return true if both the Will Topic and the Will Message are not zero-byte.
+func (p *connect) will() bool {
+	return len(p.willTopic) > 0 && len(p.willMessage) > 0
+}
+
 // NewCONNECT creates and returns a CONNECT Packet.
 func NewCONNECT(opts *CONNECTOptions) (Packet, error) {
 	// Initialize the options.
@@ -30,5 +92,24 @@ func NewCONNECT(opts *CONNECTOptions) (Packet, error) {
 		opts = &CONNECTOptions{}
 	}
 
-	return nil, nil
+	// Validate the options.
+	if err := opts.validate(); err != nil {
+		return nil, err
+	}
+
+	// Create a CONNECT Packet.
+	p := &connect{
+		clientID:     opts.ClientID,
+		userName:     opts.UserName,
+		password:     opts.Password,
+		cleanSession: opts.CleanSession,
+		keepAlive:    opts.KeepAlive,
+		willTopic:    opts.WillTopic,
+		willMessage:  opts.WillMessage,
+		willQoS:      opts.WillQoS,
+		willRetain:   opts.WillRetain,
+	}
+
+	// Return the Packet.
+	return p, nil
 }
