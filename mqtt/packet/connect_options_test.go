@@ -8,7 +8,7 @@ import (
 
 func TestCONNECTOptions_validate_errClientIDExceedsMaxStringsLen(t *testing.T) {
 	opts := &CONNECTOptions{
-		ClientID: make([]byte, mqtt.MaxStringsLen+1),
+		ClientID: make([]byte, maxStringsLen+1),
 	}
 
 	if err := opts.validate(); err != ErrClientIDExceedsMaxStringsLen {
@@ -27,7 +27,7 @@ func TestCONNECTOptions_validate_errInvalidClientIDCleanSession(t *testing.T) {
 func TestCONNECTOptions_validate_errUserNameExceedsMaxStringsLen(t *testing.T) {
 	opts := &CONNECTOptions{
 		ClientID: []byte{0x00},
-		UserName: make([]byte, mqtt.MaxStringsLen+1),
+		UserName: make([]byte, maxStringsLen+1),
 	}
 
 	if err := opts.validate(); err != ErrUserNameExceedsMaxStringsLen {
@@ -38,7 +38,7 @@ func TestCONNECTOptions_validate_errUserNameExceedsMaxStringsLen(t *testing.T) {
 func TestCONNECTOptions_validate_errPasswordExceedsMaxStringsLen(t *testing.T) {
 	opts := &CONNECTOptions{
 		ClientID: []byte{0x00},
-		Password: make([]byte, mqtt.MaxStringsLen+1),
+		Password: make([]byte, maxStringsLen+1),
 	}
 
 	if err := opts.validate(); err != ErrPasswordExceedsMaxStringsLen {
@@ -60,7 +60,7 @@ func TestCONNECTOptions_validate_errInvalidClientIDPassword(t *testing.T) {
 func TestCONNECTOptions_validate_errWillTopicExceedsMaxStringsLen(t *testing.T) {
 	opts := &CONNECTOptions{
 		ClientID:  []byte{0x00},
-		WillTopic: make([]byte, mqtt.MaxStringsLen+1),
+		WillTopic: make([]byte, maxStringsLen+1),
 	}
 
 	if err := opts.validate(); err != ErrWillTopicExceedsMaxStringsLen {
@@ -71,7 +71,7 @@ func TestCONNECTOptions_validate_errWillTopicExceedsMaxStringsLen(t *testing.T) 
 func TestCONNECTOptions_validate_errWillMessageExceedsMaxStringsLen(t *testing.T) {
 	opts := &CONNECTOptions{
 		ClientID:    []byte{0x00},
-		WillMessage: make([]byte, mqtt.MaxStringsLen+1),
+		WillMessage: make([]byte, maxStringsLen+1),
 	}
 
 	if err := opts.validate(); err != ErrWillMessageExceedsMaxStringsLen {

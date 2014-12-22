@@ -23,6 +23,15 @@ type connect struct {
 	willRetain bool
 }
 
+// setFixedHeader sets the fixed header to the Packet.
+func (p *connect) setFixedHeader() {
+	// Append the first byte to the fixed header.
+	p.fixedHeader = append(p.fixedHeader, TypeCONNECT<<4)
+
+	// Append the Remaining Length to the fixed header.
+	p.appendRemainingLength()
+}
+
 // setVariableHeader sets the variable header to the Packet.
 func (p *connect) setVariableHeader() {
 	// Convert the Keep Alive to the slice.
@@ -30,16 +39,39 @@ func (p *connect) setVariableHeader() {
 
 	// Create a variable header and set it to the Packet.
 	p.variableHeader = []byte{
-		0x00, // Length MSB (0)
-		0x04, // Length LSB (4)
-		0x4D, // 'M'
-		0x51, // 'Q'
-		0x54, // 'T'
-		0x54, // 'T'
-		0x04, // Level(4)
-		0x00,
-		keepAlive[0],
-		keepAlive[1],
+		0x00,             // Length MSB (0)
+		0x04,             // Length LSB (4)
+		0x4D,             // 'M'
+		0x51,             // 'Q'
+		0x54,             // 'T'
+		0x54,             // 'T'
+		0x04,             // Level(4)
+		p.connectFlags(), // Connect Flags
+		keepAlive[0],     // Keep Alive MSB
+		keepAlive[1],     // Keep Alive LSB
+	}
+}
+
+// setPayload sets the payload to the Packet.
+func (p *connect) setPayload() {
+	// Append the Client Identifier to the payload.
+	p.payload = appendStrings(p.payload, p.clientID)
+
+	// Append the Will Topic and the Will Message to the payload
+	// if the Packet has them.
+	if p.will() {
+		p.payload = appendStrings(p.payload, p.willTopic)
+		p.payload = appendStrings(p.payload, p.willMessage)
+	}
+
+	// Append the User Name to the payload if the Packet has it.
+	if len(p.userName) > 0 {
+		p.payload = appendStrings(p.payload, p.userName)
+	}
+
+	// Append the Password to the payload if the Packet has it.
+	if len(p.password) > 0 {
+		p.payload = appendStrings(p.payload, p.password)
 	}
 }
 
@@ -109,6 +141,15 @@ func NewCONNECT(opts *CONNECTOptions) (Packet, error) {
 		willQoS:      opts.WillQoS,
 		willRetain:   opts.WillRetain,
 	}
+
+	// Set the variable header to the Packet.
+	p.setVariableHeader()
+
+	// Set the payload to the Packet.
+	p.setPayload()
+
+	// Set the fixed header to the packet.
+	p.setFixedHeader()
 
 	// Return the Packet.
 	return p, nil

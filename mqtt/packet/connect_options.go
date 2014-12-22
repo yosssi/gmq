@@ -45,7 +45,7 @@ type CONNECTOptions struct {
 
 func (opts *CONNECTOptions) validate() error {
 	// Check the length of the Client Identifier.
-	if len(opts.ClientID) > mqtt.MaxStringsLen {
+	if len(opts.ClientID) > maxStringsLen {
 		return ErrClientIDExceedsMaxStringsLen
 	}
 
@@ -55,12 +55,12 @@ func (opts *CONNECTOptions) validate() error {
 	}
 
 	// Check the length of the User Name.
-	if len(opts.UserName) > mqtt.MaxStringsLen {
+	if len(opts.UserName) > maxStringsLen {
 		return ErrUserNameExceedsMaxStringsLen
 	}
 
 	// Check the length of the Password.
-	if len(opts.Password) > mqtt.MaxStringsLen {
+	if len(opts.Password) > maxStringsLen {
 		return ErrPasswordExceedsMaxStringsLen
 	}
 
@@ -70,12 +70,12 @@ func (opts *CONNECTOptions) validate() error {
 	}
 
 	// Check the length of the Will Topic.
-	if len(opts.WillTopic) > mqtt.MaxStringsLen {
+	if len(opts.WillTopic) > maxStringsLen {
 		return ErrWillTopicExceedsMaxStringsLen
 	}
 
 	// Check the length of the Will Message.
-	if len(opts.WillMessage) > mqtt.MaxStringsLen {
+	if len(opts.WillMessage) > maxStringsLen {
 		return ErrWillMessageExceedsMaxStringsLen
 	}
 
