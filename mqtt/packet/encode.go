@@ -1,17 +1,15 @@
 package packet
 
-// encodeUint16 converts an unsigned 16-bit integer
+// encodeUint16 converts the unsigned 16-bit integer
 // into a slice of bytes in big-endian order.
 func encodeUint16(n uint16) []byte {
 	return []byte{byte(n >> 8), byte(n)}
 }
 
-// encodeLength encodes an unsigned integer
-// using a variable length encoding scheme.
-func encodeLength(length uint) uint32 {
+// encodeLength encodes the unsigned integer
+// by using a variable length encoding scheme.
+func encodeLength(n uint32) uint32 {
 	var value, digit uint32
-
-	n := uint32(length)
 
 	for n > 0 {
 		if value != 0 {
@@ -26,7 +24,7 @@ func encodeLength(length uint) uint32 {
 			digit |= 0x80
 		}
 
-		value |= uint32(digit)
+		value |= digit
 	}
 
 	return value

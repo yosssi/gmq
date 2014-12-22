@@ -1,130 +1,69 @@
 package packet
 
 import (
-	"bytes"
-	"errors"
+	"io/ioutil"
 	"testing"
 )
 
-type errWriter struct{}
+func Test_base_WriteTo(t *testing.T) {
+	b := base{
+		fixedHeader:    []byte{0x00},
+		variableHeader: []byte{0x00, 0x00},
+		payload:        []byte{0x00, 0x00, 0x00},
+	}
 
-func (w *errWriter) Write(p []byte) (int, error) {
-	return 0, errTest
-}
+	n, err := b.WriteTo(ioutil.Discard)
+	if err != nil {
+		nilErrorExpected(t, err)
+		return
+	}
 
-var errTest = errors.New("testError")
-
-func TestBase_WriteTo_err(t *testing.T) {
-	b := Base{}
-
-	if _, err := b.WriteTo(&errWriter{}); err != errTest {
-		if err == nil {
-			t.Errorf("err => nil, want => %q", errTest)
-		} else {
-			t.Errorf("err => %q, want => %q", err, errTest)
-		}
+	if want := int64(len(b.fixedHeader) + len(b.variableHeader) + len(b.payload)); n != want {
+		t.Errorf("n => %d, want => %d", n, want)
 	}
 }
 
-func TestBase_WriteTo(t *testing.T) {
-	fh, vh, p := "fixedHeader", "variableHeader", "payload"
-
-	b := Base{
-		FixedHeader:    []byte(fh),
-		VariableHeader: []byte(vh),
-		Payload:        []byte(p),
-	}
-
-	var bf bytes.Buffer
-
-	if _, err := b.WriteTo(&bf); err != nil {
-		t.Errorf("err => %q, want => nil", err)
-	}
-
-	if get, want := bf.String(), fh+vh+p; get != want {
-		t.Errorf("b.String() => %q, want => %q", get, want)
-	}
-}
-
-func TestBase_Type_err(t *testing.T) {
-	b := Base{}
-
-	if _, err := b.Type(); err != ErrInvalidFixedHeaderLen {
-		if err == nil {
-			t.Errorf("err => nil, want => %q", ErrInvalidFixedHeaderLen)
-		} else {
-			t.Errorf("err => %q, want => %q", err, ErrInvalidFixedHeaderLen)
-		}
-	}
-}
-
-func TestBase_Type(t *testing.T) {
-	var srcPtype byte = 0x10
-
-	b := Base{
-		FixedHeader: []byte{srcPtype, 0x00},
+func Test_base_Type(t *testing.T) {
+	b := base{
+		fixedHeader: []byte{TypeCONNECT << 4},
 	}
 
 	ptype, err := b.Type()
 	if err != nil {
-		t.Errorf("err => %q, want => nil", err)
+		nilErrorExpected(t, err)
 		return
 	}
 
-	if want := srcPtype >> 4; ptype != want {
-		t.Errorf("ptype => %X, want => %X", ptype, want)
+	if ptype != TypeCONNECT {
+		t.Errorf("ptype => %X, want => %X", ptype, TypeCONNECT)
 	}
 }
 
-func TestBase_appendRemainingLength(t *testing.T) {
-	p := &CONNECT{}
+func Test_base_appendRemainingLength(t *testing.T) {
+	b := base{
+		variableHeader: []byte{0x00},
+		payload:        []byte{0x00, 0x00},
+	}
 
-	p.VariableHeader = []byte{0x00}
-	p.Payload = []byte{0x00, 0x00}
+	b.appendRemainingLength()
 
-	p.appendRemainingLength()
-
-	if got, want := int(p.FixedHeader[0]), len(p.VariableHeader)+len(p.Payload); got != want {
-		t.Errorf("got => %d, want => %d", got, want)
+	if want := []byte{0x03}; len(b.fixedHeader) != len(want) || b.fixedHeader[0] != want[0] {
+		t.Errorf("b.fixedHeader => %v, want => %v", b.fixedHeader, want)
 	}
 }
 
 func Test_appendRemainingLength(t *testing.T) {
-	testCase := []struct {
-		in  uint32
-		out []byte
-	}{
-		{
-			in:  0xFF000000,
-			out: []byte{255, 0, 0, 0},
-		},
-		{
-			in:  0x00FF0000,
-			out: []byte{255, 0, 0},
-		},
-		{
-			in:  0x0000FF00,
-			out: []byte{255, 0},
-		},
-		{
-			in:  0x000000FF,
-			out: []byte{255},
-		},
+	var b []byte
+
+	b = appendRemainingLength(b, 0xFF000000)
+
+	want := []byte{0xFF, 0x00, 0x00, 0x00}
+
+	if len(b) != len(want) || b[0] != want[0] || b[1] != want[1] || b[2] != want[2] || b[3] != want[3] {
+		t.Errorf("b => %X, want => %X", b, want)
 	}
+}
 
-	for _, tc := range testCase {
-		b := appendRemainingLength([]byte{}, tc.in)
-
-		if len(b) != len(tc.out) {
-			t.Errorf("len(b) => %d, want => %d", len(b), len(tc.out))
-			continue
-		}
-
-		for i, bt := range b {
-			if bt != tc.out[i] {
-				t.Errorf("bt => %X, want => %X", bt, tc.out[i])
-				continue
-			}
-		}
-	}
+func nilErrorExpected(t *testing.T, err error) {
+	t.Errorf("err => %q, want => nil", err)
 }

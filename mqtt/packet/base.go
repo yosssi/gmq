@@ -5,61 +5,68 @@ import (
 	"io"
 )
 
-// Base holds the common fields and methods among MQTT Control Packets.
-type Base struct {
-	FixedHeader    []byte
-	VariableHeader []byte
-	Payload        []byte
+// base holds the fields and methods which are common
+// among the MQTT Control Packets.
+type base struct {
+	// fixedHeader represents the fixed header of the Packet.
+	fixedHeader fixedHeader
+	// VariableHeader represents the variable header of the Packet.
+	variableHeader []byte
+	// Payload represents the payload of the Packet.
+	payload []byte
 }
 
 // WriteTo writes the Packet data to the writer.
-func (p *Base) WriteTo(w io.Writer) (int64, error) {
+func (b *base) WriteTo(w io.Writer) (int64, error) {
+	// Create a byte buffer.
 	var bf bytes.Buffer
 
-	// Write the Fixed header, the Variable header and the Payload to the buffer.
-	bf.Write(p.FixedHeader)
-	bf.Write(p.VariableHeader)
-	bf.Write(p.Payload)
+	// Write the Packet data to the buffer.
+	bf.Write(b.fixedHeader)
+	bf.Write(b.variableHeader)
+	bf.Write(b.payload)
 
 	// Write the buffered data to the writer.
 	n, err := w.Write(bf.Bytes())
 
+	// Return the result.
 	return int64(n), err
 }
 
-// Type returns the MQTT Control Packet type.
-func (p *Base) Type() (byte, error) {
-	return typeFromBytes(p.FixedHeader)
+// Type extracts the MQTT Control Packet type from
+// the fixed header and returns it.
+func (b *base) Type() (byte, error) {
+	return b.fixedHeader.ptype()
 }
 
-// appendRemainingLength appends the Remaining Length to the Fixed Header.
-func (p *Base) appendRemainingLength() {
-	// Calculate the Remaining Length.
-	rl := encodeLength(uint(len(p.VariableHeader) + len(p.Payload)))
+// appendRemainingLength appends the Remaining Length
+// to the fixed header.
+func (b *base) appendRemainingLength() {
+	// Calculate and encode the Remaining Length.
+	rl := encodeLength(uint32(len(b.variableHeader) + len(b.payload)))
 
-	// Append the Remaining Length to the slice and set it to the Fixed Header.
-	p.FixedHeader = appendRemainingLength(p.FixedHeader, rl)
+	// Append the Remaining Length to the fixed header.
+	b.fixedHeader = appendRemainingLength(b.fixedHeader, rl)
 }
 
-// appendRemainingLength append the Remaining Length to the slice
-// and returns it.
+// appendRemainingLength appends the Remaining Length
+// to the slice and returns it.
 func appendRemainingLength(b []byte, rl uint32) []byte {
+	// Append the Remaining Length to the slice.
 	switch {
 	case rl&0xFF000000 > 0:
 		b = append(b, byte((rl&0xFF000000)>>24))
-		b = append(b, byte((rl&0x00FF0000)>>16))
-		b = append(b, byte((rl&0x0000FF00)>>8))
-		b = append(b, byte(rl&0x000000FF))
+		fallthrough
 	case rl&0x00FF0000 > 0:
 		b = append(b, byte((rl&0x00FF0000)>>16))
-		b = append(b, byte((rl&0x0000FF00)>>8))
-		b = append(b, byte(rl&0x000000FF))
+		fallthrough
 	case rl&0x0000FF00 > 0:
 		b = append(b, byte((rl&0x0000FF00)>>8))
-		b = append(b, byte(rl&0x000000FF))
+		fallthrough
 	default:
 		b = append(b, byte(rl&0x000000FF))
 	}
 
+	// Return the slice.
 	return b
 }
