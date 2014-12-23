@@ -397,7 +397,7 @@ func (cli *Client) handleErrorAndDisconn(err error) {
 
 	// Ignore the error and end the process
 	// if the Network Connection has already
-	// disconnected.
+	// been disconnected.
 	if cli.conn == nil || cli.conn.disconnected {
 		// Unlock.
 		cli.mu.RUnlock()
