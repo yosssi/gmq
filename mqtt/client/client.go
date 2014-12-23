@@ -31,8 +31,6 @@ type Client struct {
 	conn *connection
 	// sess is the Session.
 	sess *session
-	// disconnecting is true if the Client is disconnecting the Network Connection.
-	disconnecting bool
 
 	// wgNew is the Wait Group for the goroutines
 	// which are launched by the New method.
@@ -171,8 +169,8 @@ func (cli *Client) Disconnect() error {
 		return err
 	}
 
-	// Set the disconnecting flag true.
-	cli.disconnecting = true
+	// Change the state of the Network Connection to disconnected.
+	cli.conn.disconnected = true
 
 	// Unlock.
 	cli.mu.Unlock()
@@ -199,9 +197,6 @@ func (cli *Client) Disconnect() error {
 
 	// Initialize the channels of the Client.
 	cli.initChans()
-
-	// Set the disconnecting flag false.
-	cli.disconnecting = false
 
 	// Unlock.
 	cli.mu.Unlock()
@@ -378,9 +373,15 @@ func (cli *Client) handlePacket(p packet.Packet) error {
 		case cli.connackc <- struct{}{}:
 		default:
 		}
-	case packet.TypePINGRESP:
-		// TODO
-		fmt.Printf("%+v", p)
+	case
+		packet.TypePUBLISH,
+		packet.TypePUBACK,
+		packet.TypePUBREC,
+		packet.TypePUBREL,
+		packet.TypePUBCOMP,
+		packet.TypeSUBACK,
+		packet.TypeUNSUBACK,
+		packet.TypePINGRESP:
 	default:
 		return packet.ErrInvalidPacketType
 	}
@@ -395,8 +396,9 @@ func (cli *Client) handleErrorAndDisconn(err error) {
 	cli.mu.RLock()
 
 	// Ignore the error and end the process
-	// while disconnecting.
-	if cli.disconnecting {
+	// if the Network Connection has already
+	// disconnected.
+	if cli.conn == nil || cli.conn.disconnected {
 		// Unlock.
 		cli.mu.RUnlock()
 

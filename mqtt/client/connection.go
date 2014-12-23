@@ -8,8 +8,12 @@ import (
 // connection represents a Network Connection.
 type connection struct {
 	net.Conn
+	// r is the buffered reader.
 	r *bufio.Reader
+	// w is the buffered writer.
 	w *bufio.Writer
+	// disconnected is true if the Network Connection is disconnected.
+	disconnected bool
 }
 
 // newConnection connects to the address on the named network,
