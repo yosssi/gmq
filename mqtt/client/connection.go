@@ -12,7 +12,8 @@ type connection struct {
 	r *bufio.Reader
 	// w is the buffered writer.
 	w *bufio.Writer
-	// disconnected is true if the Network Connection is disconnected.
+	// disconnected is true if the Network Connection
+	// has been disconnected.
 	disconnected bool
 }
 
