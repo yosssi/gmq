@@ -23,8 +23,7 @@ func NewFromBytes(fixedHeader FixedHeader, remaining []byte) (Packet, error) {
 		return nil, err
 	}
 
-	var p Packet
-
+	// Create and return a Packet.
 	switch ptype {
 	case TypeCONNACK:
 		return NewCONNACKFromBytes(fixedHeader, remaining)
@@ -33,7 +32,4 @@ func NewFromBytes(fixedHeader FixedHeader, remaining []byte) (Packet, error) {
 	default:
 		return nil, ErrInvalidPacketType
 	}
-
-	// Return the Packet.
-	return p, nil
 }
