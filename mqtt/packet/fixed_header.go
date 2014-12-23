@@ -5,18 +5,18 @@ import "errors"
 // Error value
 var ErrInvalidFixedHeaderLen = errors.New("the length of the fixed header is invalid")
 
-// fixedHeader represents the fixed header of the Packet.
-type fixedHeader []byte
+// FixedHeader represents the fixed header of the Packet.
+type FixedHeader []byte
 
 // ptype extracts the MQTT Control Packet type from
 // the fixed header and returns it.
-func (fh fixedHeader) ptype() (byte, error) {
+func (fixedHeader FixedHeader) ptype() (byte, error) {
 	// Check the length of the fixed header.
-	if len(fh) < 1 {
+	if len(fixedHeader) < 1 {
 		return 0x00, ErrInvalidFixedHeaderLen
 	}
 
 	// Extract the MQTT Control Packet type from
 	// the fixed header and return it.
-	return fh[0] >> 4, nil
+	return fixedHeader[0] >> 4, nil
 }

@@ -3,17 +3,17 @@ package packet
 import "testing"
 
 func Test_fixedHeader_ptype_errInvalidFixedHeaderLen(t *testing.T) {
-	var fh fixedHeader
+	var fixedHeader FixedHeader
 
-	if _, err := fh.ptype(); err != ErrInvalidFixedHeaderLen {
+	if _, err := fixedHeader.ptype(); err != ErrInvalidFixedHeaderLen {
 		invalidError(t, err, ErrInvalidFixedHeaderLen)
 	}
 }
 
 func Test_fixedHeader_ptype(t *testing.T) {
-	fh := fixedHeader([]byte{TypeCONNECT << 4})
+	fixedHeader := FixedHeader([]byte{TypeCONNECT << 4})
 
-	ptype, err := fh.ptype()
+	ptype, err := fixedHeader.ptype()
 	if err != nil {
 		nilErrorExpected(t, err)
 		return

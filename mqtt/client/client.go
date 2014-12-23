@@ -29,6 +29,9 @@ type Client struct {
 
 	// wg is the Wait Group for the goroutines.
 	wg sync.WaitGroup
+
+	// errHandler is the error handler.
+	errHandler func(error)
 }
 
 // Connect establishes a Network Connection to the Server and
@@ -156,7 +159,7 @@ func (cli *Client) receive() (packet.Packet, error) {
 	}
 
 	// Create the Fixed header.
-	fixedHeader := []byte{b}
+	fixedHeader := packet.FixedHeader([]byte{b})
 
 	// Get and decode the Remaining Length.
 	var mp uint32 = 1 // multiplier
@@ -190,9 +193,7 @@ func (cli *Client) receive() (packet.Packet, error) {
 	}
 
 	// Create and return a Packet.
-	fmt.Println(fixedHeader, remaining)
-	return nil, nil
-	//return packet.NewFromBytes(fixedHeader, remaining)
+	return packet.NewFromBytes(fixedHeader, remaining)
 }
 
 // clean cleans the Network Connection and the Session if necessary.
@@ -203,5 +204,17 @@ func (cli *Client) clean() {
 	// Clean the Session if the Clean Session is true.
 	if cli.sess != nil && cli.sess.cleanSession {
 		cli.sess = nil
+	}
+}
+
+// New creates and returns a Client.
+func New(opts *Options) *Client {
+	// Initialize the options.
+	if opts == nil {
+		opts = &Options{}
+	}
+
+	return &Client{
+		errHandler: opts.ErrHandler,
 	}
 }

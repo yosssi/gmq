@@ -16,7 +16,7 @@ type Packet interface {
 }
 
 // NewFromBytes creates a Packet from the byte data and returns it.
-func NewFromBytes(fixedHeader fixedHeader, remaining []byte) (Packet, error) {
+func NewFromBytes(fixedHeader FixedHeader, remaining []byte) (Packet, error) {
 	// Extract the MQTT Control Packet type from the fixed header.
 	ptype, err := fixedHeader.ptype()
 	if err != nil {
@@ -26,6 +26,8 @@ func NewFromBytes(fixedHeader fixedHeader, remaining []byte) (Packet, error) {
 	var p Packet
 
 	switch ptype {
+	case TypeCONNACK:
+		return NewCONNACKFromBytes(fixedHeader, remaining)
 	default:
 		return nil, ErrInvalidPacketType
 	}

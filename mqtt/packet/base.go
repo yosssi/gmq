@@ -9,7 +9,7 @@ import (
 // among the MQTT Control Packets.
 type base struct {
 	// fixedHeader represents the fixed header of the Packet.
-	fixedHeader fixedHeader
+	fixedHeader FixedHeader
 	// VariableHeader represents the variable header of the Packet.
 	variableHeader []byte
 	// Payload represents the payload of the Packet.
