@@ -10,12 +10,12 @@ const lenCONNACKVariableHeader = 2
 
 // Connect Return code values
 const (
-	Accepted                    byte = 0x00
-	UnacceptableProtocolVersion byte = 0x01
-	IdentifierRejected          byte = 0x02
-	ServerUnavailable           byte = 0x03
-	BadUserNameOrPassword       byte = 0x04
-	NotAuthorized               byte = 0x05
+	connRetAccepted                    byte = 0x00
+	connRetUnacceptableProtocolVersion byte = 0x01
+	connRetIdentifierRejected          byte = 0x02
+	connRetServerUnavailable           byte = 0x03
+	connRetBadUserNameOrPassword       byte = 0x04
+	connRetNotAuthorized               byte = 0x05
 )
 
 // Error values
@@ -101,12 +101,12 @@ func validateCONNACKBytes(fixedHeader FixedHeader, variableHeader []byte) error 
 	// Check the Connect Return code of the variable header.
 	switch variableHeader[1] {
 	case
-		Accepted,
-		UnacceptableProtocolVersion,
-		IdentifierRejected,
-		ServerUnavailable,
-		BadUserNameOrPassword,
-		NotAuthorized:
+		connRetAccepted,
+		connRetUnacceptableProtocolVersion,
+		connRetIdentifierRejected,
+		connRetServerUnavailable,
+		connRetBadUserNameOrPassword,
+		connRetNotAuthorized:
 	default:
 		return ErrInvalidConnectReturnCode
 	}
