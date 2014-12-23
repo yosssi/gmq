@@ -55,23 +55,23 @@ func (p *connect) setVariableHeader() {
 // setPayload sets the payload to the Packet.
 func (p *connect) setPayload() {
 	// Append the Client Identifier to the payload.
-	p.payload = appendStrings(p.payload, p.clientID)
+	p.payload = appendLenStr(p.payload, p.clientID)
 
 	// Append the Will Topic and the Will Message to the payload
 	// if the Packet has them.
 	if p.will() {
-		p.payload = appendStrings(p.payload, p.willTopic)
-		p.payload = appendStrings(p.payload, p.willMessage)
+		p.payload = appendLenStr(p.payload, p.willTopic)
+		p.payload = appendLenStr(p.payload, p.willMessage)
 	}
 
 	// Append the User Name to the payload if the Packet has it.
 	if len(p.userName) > 0 {
-		p.payload = appendStrings(p.payload, p.userName)
+		p.payload = appendLenStr(p.payload, p.userName)
 	}
 
 	// Append the Password to the payload if the Packet has it.
 	if len(p.password) > 0 {
-		p.payload = appendStrings(p.payload, p.password)
+		p.payload = appendLenStr(p.payload, p.password)
 	}
 }
 
