@@ -21,7 +21,7 @@ func TestNewFromBytes_PINGRESP(t *testing.T) {
 }
 
 func TestNewFromBytes_ErrInvalidPacketType(t *testing.T) {
-	if _, err := NewFromBytes([]byte{TypeCONNECT << 4}, nil); err != ErrInvalidPacketType {
+	if _, err := NewFromBytes([]byte{0x00 << 4}, nil); err != ErrInvalidPacketType {
 		invalidError(t, err, ErrInvalidPacketType)
 	}
 }

@@ -28,17 +28,18 @@ func NewPINGRESPFromBytes(fixedHeader FixedHeader, remaining []byte) (Packet, er
 
 // validatePINGRESPBytes validates the fixed header and the remaining.
 func validatePINGRESPBytes(fixedHeader FixedHeader, remaining []byte) error {
+	// Extract the MQTT Control Packet type.
+	ptype, err := fixedHeader.ptype()
+	if err != nil {
+		return err
+	}
+
 	// Check the length of the fixed header.
 	if len(fixedHeader) != lenPINGRESPFixedHeader {
 		return ErrInvalidFixedHeaderLen
 	}
 
 	// Check the MQTT Control Packet type.
-	ptype, err := fixedHeader.ptype()
-	if err != nil {
-		return err
-	}
-
 	if ptype != TypePINGRESP {
 		return ErrInvalidPacketType
 	}
