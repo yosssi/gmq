@@ -63,17 +63,18 @@ func NewCONNACKFromBytes(fixedHeader FixedHeader, variableHeader []byte) (Packet
 
 // validateCONNACKBytes validates the fixed header and the variable header.
 func validateCONNACKBytes(fixedHeader FixedHeader, variableHeader []byte) error {
+	// Extract the MQTT Control Packet type.
+	ptype, err := fixedHeader.ptype()
+	if err != nil {
+		return err
+	}
+
 	// Check the length of the fixed header.
 	if len(fixedHeader) != lenCONNACKFixedHeader {
 		return ErrInvalidFixedHeaderLen
 	}
 
 	// Check the MQTT Control Packet type.
-	ptype, err := fixedHeader.ptype()
-	if err != nil {
-		return err
-	}
-
 	if ptype != TypeCONNACK {
 		return ErrInvalidPacketType
 	}
