@@ -5,9 +5,13 @@ import (
 	"fmt"
 	"io"
 	"sync"
+	"time"
 
 	"github.com/yosssi/gmq/mqtt/packet"
 )
+
+// Buffer size of the send channel
+const sendBufSize = 1024
 
 // Multiple errors string format
 const strErrMulti = "error (%q) occurred while handling the other error (%q)"
@@ -16,6 +20,7 @@ const strErrMulti = "error (%q) occurred while handling the other error (%q)"
 var (
 	ErrAlreadyConnected = errors.New("the Client has already connected to the Server")
 	ErrNotYetConnected  = errors.New("the Client has not yet connected to the Server")
+	ErrCONNACKTimeout   = errors.New("the CONNACK Packet was not received within a reasonalbe amount of time")
 )
 
 // Client represents a Client.
@@ -26,9 +31,33 @@ type Client struct {
 	conn *connection
 	// sess is the Session.
 	sess *session
+	// disconnecting is true if the Client is disconnecting the Network Connection.
+	disconnecting bool
 
-	// wg is the Wait Group for the goroutines.
-	wg sync.WaitGroup
+	// wgNew is the Wait Group for the goroutines
+	// which are launched by the New method.
+	wgNew sync.WaitGroup
+	// disconnc is the channel which handles the signal
+	// to disconnect the Network Connection.
+	disconnc chan struct{}
+	// disconnEndc is the channel which ends the goroutine
+	// which disconnects the Network Connection.
+	disconnEndc chan struct{}
+
+	// wgConn is the Wait Group for the goroutines
+	// which are launched by the Connect method.
+	wgConn sync.WaitGroup
+	// connackc is the channel which handles the signal
+	// to notify the arrival of the CONNACK Packet.
+	connackc chan struct{}
+	// connackEndc is the channel which ends the goroutine
+	// which monitors the arrival of the CONNACK Packet.
+	connackEndc chan struct{}
+	// sendc is the channel which handles the Packet.
+	sendc chan packet.Packet
+	// sendEndc is the channel which ends the goroutine
+	// which sends a Packet to the Server.
+	sendEndc chan struct{}
 
 	// errHandler is the error handler.
 	errHandler func(error)
@@ -99,15 +128,83 @@ func (cli *Client) Connect(opts *ConnectOptions) error {
 		return err
 	}
 
-	// Launch a goroutine which receives a Packet from the Server.
-	cli.wg.Add(1)
-	func() {
-		defer cli.wg.Done()
+	// Launch a goroutine which waits for receiving the CONNACK Packet.
+	cli.wgConn.Add(1)
+	go cli.waitCONNACK(opts.CONNACKTimeout)
 
-		for {
-			cli.receive()
-		}
-	}()
+	// Launch a goroutine which receives a Packet from the Server.
+	cli.wgConn.Add(1)
+	go cli.receivePackets()
+
+	// Launch a goroutine which sends a Packet to the Server.
+	cli.wgConn.Add(1)
+	go cli.sendPackets(opts.KeepAlive)
+
+	return nil
+}
+
+// Disconnect sends a DISCONNECT Packet to the Server and
+// closes the Network Connection.
+func (cli *Client) Disconnect() error {
+	// Lock for the disconnection.
+	cli.mu.Lock()
+
+	// Return an error if the Client has not yet connected to the Server.
+	if cli.conn != nil {
+		// Unlock.
+		cli.mu.Unlock()
+
+		return ErrNotYetConnected
+	}
+
+	// Send a DISCONNECT Packet to the Server.
+	// Ignore the error returned by the send method because
+	// we proceed to the subsequent disconnecting processing
+	// even if the send method returns the error.
+	cli.send(packet.NewDISCONNECT())
+
+	// Close the Network Connection.
+	if err := cli.conn.Close(); err != nil {
+		// Unlock.
+		cli.mu.Unlock()
+
+		return err
+	}
+
+	// Set the disconnecting flag true.
+	cli.disconnecting = true
+
+	// Unlock.
+	cli.mu.Unlock()
+
+	// Send the end signals to the goroutines via the channels.
+	select {
+	case cli.connackEndc <- struct{}{}:
+	default:
+	}
+
+	select {
+	case cli.sendEndc <- struct{}{}:
+	default:
+	}
+
+	// Wait until all goroutines end.
+	cli.wgConn.Wait()
+
+	// Lock for the cleaning of the Network Connection and the Session.
+	cli.mu.Lock()
+
+	// Clean the Network Connection and the Session.
+	cli.clean()
+
+	// Initialize the channels of the Client.
+	cli.initChans()
+
+	// Set the disconnecting flag false.
+	cli.disconnecting = false
+
+	// Unlock.
+	cli.mu.Unlock()
 
 	return nil
 }
@@ -207,14 +304,193 @@ func (cli *Client) clean() {
 	}
 }
 
+// initChans initializes the channels of the client.
+func (cli *Client) initChans() {
+	cli.connackc = make(chan struct{}, 1)
+	cli.connackEndc = make(chan struct{}, 1)
+	cli.sendc = make(chan packet.Packet, sendBufSize)
+	cli.sendEndc = make(chan struct{}, 1)
+}
+
+// waitCONNACK waits for receiving the CONNACK Packet.
+func (cli *Client) waitCONNACK(timeout time.Duration) {
+	defer cli.wgConn.Done()
+
+	var timeoutc <-chan time.Time
+
+	if timeout > 0 {
+		timeoutc = time.After(timeout * time.Second)
+	}
+
+	select {
+	case <-cli.connackc:
+	case <-timeoutc:
+		// Handle the timeout error.
+		if cli.errHandler != nil {
+			cli.errHandler(ErrCONNACKTimeout)
+		}
+
+		// Sned a disconnect siganl to the goroutine
+		// via the channel if possible.
+		select {
+		case cli.disconnc <- struct{}{}:
+		default:
+		}
+	case <-cli.connackEndc:
+	}
+}
+
+// receivePackets receives Packets from the Server.
+func (cli *Client) receivePackets() {
+	defer cli.wgConn.Done()
+
+	for {
+		// Receive a Packet from the Server.
+		p, err := cli.receive()
+		if err != nil {
+			// Handle the error and disconnect
+			// the Network Connection.
+			cli.handleErrorAndDisconn(err)
+
+			// End the goroutine.
+			return
+		}
+
+		// Handle the Packet.
+		if err := cli.handlePacket(p); err != nil {
+			fmt.Println(err)
+		}
+	}
+}
+
+// handlePacket handles the Packet.
+func (cli *Client) handlePacket(p packet.Packet) error {
+	// Get the MQTT Control Packet type.
+	ptype, err := p.Type()
+	if err != nil {
+		return err
+	}
+
+	switch ptype {
+	case packet.TypeCONNACK:
+		// Notify the arrival of the CONNACK Packet if possible.
+		select {
+		case cli.connackc <- struct{}{}:
+		default:
+		}
+	case packet.TypePINGRESP:
+		// TODO
+		fmt.Printf("%+v", p)
+	default:
+		return packet.ErrInvalidPacketType
+	}
+
+	return nil
+}
+
+// handleError handles the error and disconnects
+// the Network Connection.
+func (cli *Client) handleErrorAndDisconn(err error) {
+	// Lock for reading.
+	cli.mu.RLock()
+
+	// Ignore the error and end the process
+	// while disconnecting.
+	if cli.disconnecting {
+		// Unlock.
+		cli.mu.RUnlock()
+
+		return
+	}
+
+	// Unlock.
+	cli.mu.RUnlock()
+
+	// Handle the error.
+	if cli.errHandler != nil {
+		cli.errHandler(err)
+	}
+
+	// Send a disconnect signal to the goroutine
+	// via the channel if possible.
+	select {
+	case cli.disconnc <- struct{}{}:
+	default:
+	}
+}
+
+// sendPackets sends Packets to the Server.
+func (cli *Client) sendPackets(keepAlive uint16) {
+	defer cli.wgConn.Done()
+
+	for {
+		var keepAlivec <-chan time.Time
+
+		if keepAlive > 0 {
+			keepAlivec = time.After(time.Duration(keepAlive) * time.Second)
+		}
+
+		select {
+		case p := <-cli.sendc:
+			cli.sendPacket(p)
+		case <-keepAlivec:
+			cli.sendPacket(packet.NewPINGREQ())
+		case <-cli.sendEndc:
+			return
+		}
+	}
+}
+
+// sendPacket sends a Packet to the Server.
+func (cli *Client) sendPacket(p packet.Packet) {
+	// Lock for sending the Packet.
+	cli.mu.RLock()
+
+	// Send the Packet to the Server.
+	err := cli.send(p)
+
+	// Unlock.
+	cli.mu.RUnlock()
+
+	if err != nil {
+		cli.handleErrorAndDisconn(err)
+	}
+}
+
 // New creates and returns a Client.
 func New(opts *Options) *Client {
 	// Initialize the options.
 	if opts == nil {
 		opts = &Options{}
 	}
-
-	return &Client{
-		errHandler: opts.ErrHandler,
+	// Create a Client.
+	cli := &Client{
+		disconnc:    make(chan struct{}, 1),
+		disconnEndc: make(chan struct{}, 1),
+		errHandler:  opts.ErrHandler,
 	}
+
+	// Initialize the channels of the client.
+	cli.initChans()
+
+	// Launch a goroutine which disconnects the Network Connection.
+	cli.wgNew.Add(1)
+	go func() {
+		defer func() {
+			cli.wgNew.Done()
+		}()
+
+		for {
+			select {
+			case <-cli.disconnc:
+			case <-cli.disconnEndc:
+				// End the goroutine.
+				return
+			}
+		}
+
+	}()
+
+	// Return the Client.
+	return cli
 }

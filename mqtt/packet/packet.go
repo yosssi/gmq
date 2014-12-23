@@ -28,6 +28,8 @@ func NewFromBytes(fixedHeader FixedHeader, remaining []byte) (Packet, error) {
 	switch ptype {
 	case TypeCONNACK:
 		return NewCONNACKFromBytes(fixedHeader, remaining)
+	case TypePINGRESP:
+		return NewPINGRESPFromBytes(fixedHeader, remaining)
 	default:
 		return nil, ErrInvalidPacketType
 	}

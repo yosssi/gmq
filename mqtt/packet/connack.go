@@ -22,6 +22,7 @@ const (
 var (
 	ErrInvalidFixedHeader       = errors.New("invalid fixed header")
 	ErrInvalidVariableHeaderLen = errors.New("invalid length of the variable header")
+	ErrInvalidRemainingLen      = errors.New("invalid length of the remaining")
 	ErrInvalidVariableHeader    = errors.New("invalid variable header")
 	ErrInvalidRemainingLength   = errors.New("invalid Remaining Length")
 	ErrInvalidConnectReturnCode = errors.New("invalid Connect Return code")
