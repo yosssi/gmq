@@ -10,9 +10,6 @@ import (
 	"github.com/yosssi/gmq/mqtt/packet"
 )
 
-// Buffer size of the send channel
-const sendBufSize = 1024
-
 // Multiple errors string format
 const strErrMulti = "error (%q) occurred while handling the other error (%q)"
 
@@ -26,41 +23,25 @@ var (
 
 // Client represents a Client.
 type Client struct {
-	// mu is the Mutex for the Network Connection.
-	mu sync.RWMutex
+	// muConn is the Mutex for the Network Connection.
+	muConn sync.RWMutex
 	// conn is the Network Connection.
 	conn *connection
+
+	// muSess is the Mutex for the Session.
+	muSess sync.RWMutex
 	// sess is the Session.
 	sess *session
 
-	// wgNew is the Wait Group for the goroutines
+	// wg is the Wait Group for the goroutines
 	// which are launched by the New method.
-	wgNew sync.WaitGroup
+	wg sync.WaitGroup
 	// disconnc is the channel which handles the signal
 	// to disconnect the Network Connection.
 	disconnc chan struct{}
 	// disconnEndc is the channel which ends the goroutine
 	// which disconnects the Network Connection.
 	disconnEndc chan struct{}
-
-	// wgConn is the Wait Group for the goroutines
-	// which are launched by the Connect method.
-	wgConn sync.WaitGroup
-	// connackc is the channel which handles the signal
-	// to notify the arrival of the CONNACK Packet.
-	connackc chan struct{}
-	// sendc is the channel which handles the Packet.
-	sendc chan packet.Packet
-	// sendEndc is the channel which ends the goroutine
-	// which sends a Packet to the Server.
-	sendEndc chan struct{}
-
-	// mupingrespcs is the Mutex for pingrespcs.
-	mupingrespcs sync.RWMutex
-	// pingrespcs is the slice of the channels which
-	// handle the signal to notify the arrival of
-	// the PINGRESP Packet.
-	pingrespcs []chan struct{}
 
 	// errHandler is the error handler.
 	errHandler func(error)
@@ -70,10 +51,10 @@ type Client struct {
 // sends a CONNECT Packet to the Server.
 func (cli *Client) Connect(opts *ConnectOptions) error {
 	// Lock for the connection.
-	cli.mu.Lock()
+	cli.muConn.Lock()
 
 	// Unlock.
-	defer cli.mu.Unlock()
+	defer cli.muConn.Unlock()
 
 	// Return an error if the Client has already connected to the Server.
 	if cli.conn != nil {
@@ -94,6 +75,9 @@ func (cli *Client) Connect(opts *ConnectOptions) error {
 	// Set the Network Connection to the Client.
 	cli.conn = conn
 
+	// Lock for reading and updating the Session.
+	cli.muSess.Lock()
+
 	// Create a Session or reuse the current Session.
 	if opts.CleanSession || cli.sess == nil {
 		// Create a Session and set it to the Client.
@@ -105,6 +89,9 @@ func (cli *Client) Connect(opts *ConnectOptions) error {
 		// Reuse the Session and set its Client Identifier to the options.
 		opts.ClientID = cli.sess.clientID
 	}
+
+	// Unlock.
+	cli.muSess.Unlock()
 
 	// Send a CONNECT Packet to the Server.
 	err = cli.sendCONNECT(&packet.CONNECTOptions{
@@ -132,15 +119,15 @@ func (cli *Client) Connect(opts *ConnectOptions) error {
 	}
 
 	// Launch a goroutine which waits for receiving the CONNACK Packet.
-	cli.wgConn.Add(1)
-	go cli.waitPacket(cli.connackc, opts.CONNACKTimeout, ErrCONNACKTimeout)
+	cli.conn.wg.Add(1)
+	go cli.waitPacket(cli.conn.connack, opts.CONNACKTimeout, ErrCONNACKTimeout)
 
 	// Launch a goroutine which receives a Packet from the Server.
-	cli.wgConn.Add(1)
+	cli.conn.wg.Add(1)
 	go cli.receivePackets()
 
 	// Launch a goroutine which sends a Packet to the Server.
-	cli.wgConn.Add(1)
+	cli.conn.wg.Add(1)
 	go cli.sendPackets(time.Duration(opts.KeepAlive), opts.PINGRESPTimeout)
 
 	return nil
@@ -150,12 +137,12 @@ func (cli *Client) Connect(opts *ConnectOptions) error {
 // closes the Network Connection.
 func (cli *Client) Disconnect() error {
 	// Lock for the disconnection.
-	cli.mu.Lock()
+	cli.muConn.Lock()
 
 	// Return an error if the Client has not yet connected to the Server.
 	if cli.conn == nil {
 		// Unlock.
-		cli.mu.Unlock()
+		cli.muConn.Unlock()
 
 		return ErrNotYetConnected
 	}
@@ -169,7 +156,7 @@ func (cli *Client) Disconnect() error {
 	// Close the Network Connection.
 	if err := cli.conn.Close(); err != nil {
 		// Unlock.
-		cli.mu.Unlock()
+		cli.muConn.Unlock()
 
 		return err
 	}
@@ -177,29 +164,67 @@ func (cli *Client) Disconnect() error {
 	// Change the state of the Network Connection to disconnected.
 	cli.conn.disconnected = true
 
-	// Unlock.
-	cli.mu.Unlock()
-
 	// Send the end signal to the goroutine via the channels.
 	select {
-	case cli.sendEndc <- struct{}{}:
+	case cli.conn.sendEnd <- struct{}{}:
 	default:
 	}
 
-	// Wait until all goroutines end.
-	cli.wgConn.Wait()
+	// Unlock.
+	cli.muConn.Unlock()
 
-	// Lock for the cleaning of the Network Connection and the Session.
-	cli.mu.Lock()
+	// Wait until all goroutines end.
+	cli.conn.wg.Wait()
+
+	// Lock for cleaning the Network Connection.
+	cli.muConn.Lock()
+
+	// Lock for cleaning the Session.
+	cli.muSess.Lock()
 
 	// Clean the Network Connection and the Session.
 	cli.clean()
 
-	// Initialize the channels of the Client.
-	cli.initChans()
+	// Unlock.
+	cli.muSess.Unlock()
 
 	// Unlock.
-	cli.mu.Unlock()
+	cli.muConn.Unlock()
+
+	return nil
+}
+
+// Publish sends a PUBLISH Packet to the Server.
+func (cli *Client) Publish(opts *PublishOptions) error {
+	// Lock for reading.
+	cli.muConn.RLock()
+
+	// Unlock.
+	defer cli.muConn.RUnlock()
+
+	// Check the Network Connection.
+	if cli.conn == nil {
+		return ErrNotYetConnected
+	}
+
+	// Initialize the options.
+	if opts == nil {
+		opts = &PublishOptions{}
+	}
+
+	// Create a PUBLISH Packet.
+	p, err := packet.NewPUBLISH(&packet.PUBLISHOptions{
+		QoS:       opts.QoS,
+		Retain:    opts.Retain,
+		TopicName: []byte(opts.TopicName),
+		Message:   []byte(opts.Message),
+	})
+	if err != nil {
+		return err
+	}
+
+	// Send the Packet to the Server.
+	cli.conn.send <- p
 
 	return nil
 }
@@ -299,16 +324,9 @@ func (cli *Client) clean() {
 	}
 }
 
-// initChans initializes the channels of the client.
-func (cli *Client) initChans() {
-	cli.connackc = make(chan struct{}, 1)
-	cli.sendc = make(chan packet.Packet, sendBufSize)
-	cli.sendEndc = make(chan struct{}, 1)
-}
-
 // waitPacket waits for receiving the Packet.
 func (cli *Client) waitPacket(packetc <-chan struct{}, timeout time.Duration, errTimeout error) {
-	defer cli.wgConn.Done()
+	defer cli.conn.wg.Done()
 
 	var timeoutc <-chan time.Time
 
@@ -336,9 +354,9 @@ func (cli *Client) receivePackets() {
 	defer func() {
 		// Close the channel which handles a signal which
 		// notifies the arrival of the CONNACK Packet.
-		close(cli.connackc)
+		close(cli.conn.connack)
 
-		cli.wgConn.Done()
+		cli.conn.wg.Done()
 	}()
 
 	for {
@@ -377,27 +395,27 @@ func (cli *Client) handlePacket(p packet.Packet) error {
 	case packet.TypeCONNACK:
 		// Notify the arrival of the CONNACK Packet if possible.
 		select {
-		case cli.connackc <- struct{}{}:
+		case cli.conn.connack <- struct{}{}:
 		default:
 		}
 	case packet.TypePINGRESP:
 		// Lock for reading and updating pingrespcs.
-		cli.mupingrespcs.Lock()
+		cli.conn.muPINGRESPs.Lock()
 
 		// Check the length of pingrespcs.
-		if len(cli.pingrespcs) == 0 {
+		if len(cli.conn.pingresps) == 0 {
 			// End the function if there is no channel in pingrespcs.
 			return nil
 		}
 
 		// Get the first channel in pingrespcs.
-		pingrespc := cli.pingrespcs[0]
+		pingrespc := cli.conn.pingresps[0]
 
 		// Remove the first channel from pingrespcs.
-		cli.pingrespcs = cli.pingrespcs[1:]
+		cli.conn.pingresps = cli.conn.pingresps[1:]
 
 		// Unlock.
-		cli.mupingrespcs.Unlock()
+		cli.conn.muPINGRESPs.Unlock()
 
 		// Notify the arrival of the PINGRESP Packet if possible.
 		select {
@@ -423,20 +441,20 @@ func (cli *Client) handlePacket(p packet.Packet) error {
 // the Network Connection.
 func (cli *Client) handleErrorAndDisconn(err error) {
 	// Lock for reading.
-	cli.mu.RLock()
+	cli.muConn.RLock()
 
 	// Ignore the error and end the process
 	// if the Network Connection has already
 	// been disconnected.
 	if cli.conn == nil || cli.conn.disconnected {
 		// Unlock.
-		cli.mu.RUnlock()
+		cli.muConn.RUnlock()
 
 		return
 	}
 
 	// Unlock.
-	cli.mu.RUnlock()
+	cli.muConn.RUnlock()
 
 	// Handle the error.
 	if cli.errHandler != nil {
@@ -455,21 +473,21 @@ func (cli *Client) handleErrorAndDisconn(err error) {
 func (cli *Client) sendPackets(keepAlive time.Duration, pingrespTimeout time.Duration) {
 	defer func() {
 		// Lock for reading and updating pingrespcs.
-		cli.mupingrespcs.Lock()
+		cli.conn.muPINGRESPs.Lock()
 
 		// Close the channels which handle a signal which
 		// notifies the arrival of the PINGREQ Packet.
-		for _, pingrespc := range cli.pingrespcs {
-			close(pingrespc)
+		for _, pingresp := range cli.conn.pingresps {
+			close(pingresp)
 		}
 
 		// Initialize pingrespcs
-		cli.pingrespcs = make([]chan struct{}, 0)
+		cli.conn.pingresps = make([]chan struct{}, 0)
 
 		// Unlock.
-		cli.mupingrespcs.Unlock()
+		cli.conn.muPINGRESPs.Unlock()
 
-		cli.wgConn.Done()
+		cli.conn.wg.Done()
 	}()
 
 	for {
@@ -480,15 +498,15 @@ func (cli *Client) sendPackets(keepAlive time.Duration, pingrespTimeout time.Dur
 		}
 
 		select {
-		case p := <-cli.sendc:
+		case p := <-cli.conn.send:
 			// Lock for sending the Packet.
-			cli.mu.RLock()
+			cli.muConn.RLock()
 
 			// Send the Packet to the Server.
 			err := cli.send(p)
 
 			// Unlock.
-			cli.mu.RUnlock()
+			cli.muConn.RUnlock()
 
 			if err != nil {
 				// Handle the error and disconnect the Network Connection.
@@ -499,13 +517,13 @@ func (cli *Client) sendPackets(keepAlive time.Duration, pingrespTimeout time.Dur
 			}
 		case <-keepAlivec:
 			// Lock for sending the Packet.
-			cli.mu.RLock()
+			cli.muConn.RLock()
 
 			// Send a PINGREQ Packet to the Server.
 			err := cli.send(packet.NewPINGREQ())
 
 			// Unlock.
-			cli.mu.RUnlock()
+			cli.muConn.RUnlock()
 
 			if err != nil {
 				// Handle the error and disconnect the Network Connection.
@@ -517,21 +535,21 @@ func (cli *Client) sendPackets(keepAlive time.Duration, pingrespTimeout time.Dur
 
 			// Create a channel which handles the signal to notify the arrival of
 			// the PINGRESP Packet.
-			pingrespc := make(chan struct{})
+			pingresp := make(chan struct{})
 
 			// Lock for appending the channel to pingrespcs.
-			cli.mupingrespcs.Lock()
+			cli.conn.muPINGRESPs.Lock()
 
 			// Append the channel to pingrespcs.
-			cli.pingrespcs = append(cli.pingrespcs, pingrespc)
+			cli.conn.pingresps = append(cli.conn.pingresps, pingresp)
 
 			// Unlock.
-			cli.mupingrespcs.Unlock()
+			cli.conn.muPINGRESPs.Unlock()
 
 			// Launch a goroutine which waits for receiving the PINGRESP Packet.
-			cli.wgConn.Add(1)
-			go cli.waitPacket(pingrespc, pingrespTimeout, ErrPINGRESPTimeout)
-		case <-cli.sendEndc:
+			cli.conn.wg.Add(1)
+			go cli.waitPacket(pingresp, pingrespTimeout, ErrPINGRESPTimeout)
+		case <-cli.conn.sendEnd:
 			// End this function.
 			return
 		}
@@ -551,14 +569,11 @@ func New(opts *Options) *Client {
 		errHandler:  opts.ErrHandler,
 	}
 
-	// Initialize the channels of the client.
-	cli.initChans()
-
 	// Launch a goroutine which disconnects the Network Connection.
-	cli.wgNew.Add(1)
+	cli.wg.Add(1)
 	go func() {
 		defer func() {
-			cli.wgNew.Done()
+			cli.wg.Done()
 		}()
 
 		for {
