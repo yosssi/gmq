@@ -1,15 +1,24 @@
 package packet
 
 import (
+	"bytes"
 	"errors"
 
 	"github.com/yosssi/gmq/mqtt"
+)
+
+// Wildcard characters
+const (
+	wildcardMulti  = "#"
+	wildcardSingle = "+"
+	wildcards      = wildcardMulti + wildcardSingle
 )
 
 // Error values
 var (
 	ErrInvalidQoS                    = errors.New("the QoS is invalid")
 	ErrTopicNameExceedsMaxStringsLen = errors.New("the length of the Topic Name exceeds the maximum strings legnth")
+	ErrTopicNameContainsWildcards    = errors.New("the Topic Name contains wildcard characters")
 	ErrMessageExceedsMaxStringsLen   = errors.New("the length of the Message exceeds the maximum strings legnth")
 )
 
@@ -38,6 +47,11 @@ func (opts *PUBLISHOptions) validate() error {
 	// Check the length of the Topic Name.
 	if len(opts.TopicName) > maxStringsLen {
 		return ErrTopicNameExceedsMaxStringsLen
+	}
+
+	// Check if the Topic Name contains the wildcard characters.
+	if bytes.IndexAny(opts.TopicName, wildcards) != -1 {
+		return ErrTopicNameContainsWildcards
 	}
 
 	// Check the length of the Application Message.
