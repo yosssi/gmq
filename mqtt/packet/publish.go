@@ -26,7 +26,7 @@ func (p *publish) setFixedHeader() {
 
 	// Set 1 to the Bit 3 if the DUP flag is true.
 	if p.dup {
-		b |= 0x80
+		b |= 0x08
 	}
 
 	// Set the value of the Will QoS to the Bit 2 and 1.
