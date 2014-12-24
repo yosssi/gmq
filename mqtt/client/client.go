@@ -7,11 +7,15 @@ import (
 	"sync"
 	"time"
 
+	"github.com/yosssi/gmq/mqtt"
 	"github.com/yosssi/gmq/mqtt/packet"
 )
 
 // Multiple errors string format
 const strErrMulti = "error (%q) occurred while handling the other error (%q)"
+
+// Maximum Packet Identifier
+const maxPacketID = 65535
 
 // Error values
 var (
@@ -19,6 +23,7 @@ var (
 	ErrNotYetConnected  = errors.New("the Client has not yet connected to the Server")
 	ErrCONNACKTimeout   = errors.New("the CONNACK Packet was not received within a reasonalbe amount of time")
 	ErrPINGRESPTimeout  = errors.New("the PINGRESP Packet was not received within a reasonalbe amount of time")
+	ErrPacketIDExhaused = errors.New("Packet Identifiers are exhausted")
 )
 
 // Client represents a Client.
@@ -81,10 +86,7 @@ func (cli *Client) Connect(opts *ConnectOptions) error {
 	// Create a Session or reuse the current Session.
 	if opts.CleanSession || cli.sess == nil {
 		// Create a Session and set it to the Client.
-		cli.sess = &session{
-			cleanSession: opts.CleanSession,
-			clientID:     opts.ClientID,
-		}
+		cli.sess = newSession(opts.CleanSession, opts.ClientID)
 	} else {
 		// Reuse the Session and set its Client Identifier to the options.
 		opts.ClientID = cli.sess.clientID
@@ -212,15 +214,49 @@ func (cli *Client) Publish(opts *PublishOptions) error {
 		opts = &PublishOptions{}
 	}
 
+	// Define a Packet Identifier.
+	var packetID uint16
+
+	if opts.QoS != mqtt.QoS0 {
+		// Lock for reading and updating the Session.
+		cli.muSess.Lock()
+
+		// Define an error.
+		var err error
+
+		// Generate a Packet Identifer.
+		packetID, err = cli.generatePacketID()
+		if err != nil {
+			// Unlock.
+			cli.muSess.Unlock()
+
+			return err
+		}
+	}
+
 	// Create a PUBLISH Packet.
 	p, err := packet.NewPUBLISH(&packet.PUBLISHOptions{
 		QoS:       opts.QoS,
 		Retain:    opts.Retain,
 		TopicName: []byte(opts.TopicName),
+		PacketID:  packetID,
 		Message:   []byte(opts.Message),
 	})
 	if err != nil {
+		if opts.QoS != mqtt.QoS0 {
+			// Unlock.
+			cli.muSess.Unlock()
+		}
+
 		return err
+	}
+
+	if opts.QoS != mqtt.QoS0 {
+		// Set the Packet to the Session.
+		cli.sess.sendingPackets[packetID] = p
+
+		// Unlock.
+		cli.muSess.Unlock()
 	}
 
 	// Send the Packet to the Server.
@@ -554,6 +590,29 @@ func (cli *Client) sendPackets(keepAlive time.Duration, pingrespTimeout time.Dur
 			return
 		}
 	}
+}
+
+// generatePacketID generates and returns a Packet Identifier.
+func (cli *Client) generatePacketID() (uint16, error) {
+	// Define a Packet Identifier.
+	var id uint16
+
+	for {
+		// Find a Packet Identifier which does not used.
+		if _, exist := cli.sess.sendingPackets[id]; !exist {
+			// Return the Packet Identifier.
+			return id, nil
+		}
+
+		if id == maxPacketID {
+			break
+		}
+
+		id++
+	}
+
+	// Return an error if available ids are not found.
+	return 0, ErrPacketIDExhaused
 }
 
 // New creates and returns a Client.
