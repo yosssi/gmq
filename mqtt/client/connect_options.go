@@ -13,6 +13,10 @@ type ConnectOptions struct {
 	// to wait for receiving the CONNACK Packet after sending
 	// the CONNECT Packet.
 	CONNACKTimeout time.Duration
+	// PINGRESPTimeout is timeout in seconds for the Client
+	// to wait for receiving the PINGRESP Packet after sending
+	// the PINGREQ Packet.
+	PINGRESPTimeout time.Duration
 	// ClientID is the Client Identifier of the payload.
 	ClientID []byte
 	// UserName is the User Name of the payload.

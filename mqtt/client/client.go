@@ -21,6 +21,7 @@ var (
 	ErrAlreadyConnected = errors.New("the Client has already connected to the Server")
 	ErrNotYetConnected  = errors.New("the Client has not yet connected to the Server")
 	ErrCONNACKTimeout   = errors.New("the CONNACK Packet was not received within a reasonalbe amount of time")
+	ErrPINGRESPTimeout  = errors.New("the PINGRESP Packet was not received within a reasonalbe amount of time")
 )
 
 // Client represents a Client.
@@ -48,14 +49,17 @@ type Client struct {
 	// connackc is the channel which handles the signal
 	// to notify the arrival of the CONNACK Packet.
 	connackc chan struct{}
-	// connackEndc is the channel which ends the goroutine
-	// which monitors the arrival of the CONNACK Packet.
-	connackEndc chan struct{}
 	// sendc is the channel which handles the Packet.
 	sendc chan packet.Packet
 	// sendEndc is the channel which ends the goroutine
 	// which sends a Packet to the Server.
 	sendEndc chan struct{}
+
+	// mupingrespcs is the Mutex for pingrespcs.
+	mupingrespcs sync.RWMutex
+	// pingrespcs is the slice of the channels which
+	// handle a PINGRESP Packet.
+	pingrespcs []chan struct{}
 
 	// errHandler is the error handler.
 	errHandler func(error)
@@ -128,7 +132,7 @@ func (cli *Client) Connect(opts *ConnectOptions) error {
 
 	// Launch a goroutine which waits for receiving the CONNACK Packet.
 	cli.wgConn.Add(1)
-	go cli.waitCONNACK(opts.CONNACKTimeout)
+	go cli.waitPacket(cli.connackc, opts.CONNACKTimeout, ErrCONNACKTimeout)
 
 	// Launch a goroutine which receives a Packet from the Server.
 	cli.wgConn.Add(1)
@@ -136,7 +140,7 @@ func (cli *Client) Connect(opts *ConnectOptions) error {
 
 	// Launch a goroutine which sends a Packet to the Server.
 	cli.wgConn.Add(1)
-	go cli.sendPackets(opts.KeepAlive)
+	go cli.sendPackets(time.Duration(opts.KeepAlive), opts.PINGRESPTimeout)
 
 	return nil
 }
@@ -148,7 +152,7 @@ func (cli *Client) Disconnect() error {
 	cli.mu.Lock()
 
 	// Return an error if the Client has not yet connected to the Server.
-	if cli.conn != nil {
+	if cli.conn == nil {
 		// Unlock.
 		cli.mu.Unlock()
 
@@ -175,12 +179,7 @@ func (cli *Client) Disconnect() error {
 	// Unlock.
 	cli.mu.Unlock()
 
-	// Send the end signals to the goroutines via the channels.
-	select {
-	case cli.connackEndc <- struct{}{}:
-	default:
-	}
-
+	// Send the end signal to the goroutine via the channels.
 	select {
 	case cli.sendEndc <- struct{}{}:
 	default:
@@ -302,13 +301,12 @@ func (cli *Client) clean() {
 // initChans initializes the channels of the client.
 func (cli *Client) initChans() {
 	cli.connackc = make(chan struct{}, 1)
-	cli.connackEndc = make(chan struct{}, 1)
 	cli.sendc = make(chan packet.Packet, sendBufSize)
 	cli.sendEndc = make(chan struct{}, 1)
 }
 
-// waitCONNACK waits for receiving the CONNACK Packet.
-func (cli *Client) waitCONNACK(timeout time.Duration) {
+// waitPacket waits for receiving the Packet.
+func (cli *Client) waitPacket(packetc <-chan struct{}, timeout time.Duration, errTimeout error) {
 	defer cli.wgConn.Done()
 
 	var timeoutc <-chan time.Time
@@ -318,12 +316,10 @@ func (cli *Client) waitCONNACK(timeout time.Duration) {
 	}
 
 	select {
-	case <-cli.connackc:
+	case <-packetc:
 	case <-timeoutc:
 		// Handle the timeout error.
-		if cli.errHandler != nil {
-			cli.errHandler(ErrCONNACKTimeout)
-		}
+		cli.handleErrorAndDisconn(errTimeout)
 
 		// Sned a disconnect siganl to the goroutine
 		// via the channel if possible.
@@ -331,13 +327,18 @@ func (cli *Client) waitCONNACK(timeout time.Duration) {
 		case cli.disconnc <- struct{}{}:
 		default:
 		}
-	case <-cli.connackEndc:
 	}
 }
 
 // receivePackets receives Packets from the Server.
 func (cli *Client) receivePackets() {
-	defer cli.wgConn.Done()
+	defer func() {
+		// Close the channel which handles a signal which
+		// notifies the arrival of the CONNACK Packet.
+		close(cli.connackc)
+
+		cli.wgConn.Done()
+	}()
 
 	for {
 		// Receive a Packet from the Server.
@@ -353,7 +354,12 @@ func (cli *Client) receivePackets() {
 
 		// Handle the Packet.
 		if err := cli.handlePacket(p); err != nil {
-			fmt.Println(err)
+			// Handle the error and disconnect
+			// the Network Connection.
+			cli.handleErrorAndDisconn(err)
+
+			// End the goroutine.
+			return
 		}
 	}
 }
@@ -373,6 +379,30 @@ func (cli *Client) handlePacket(p packet.Packet) error {
 		case cli.connackc <- struct{}{}:
 		default:
 		}
+	case packet.TypePINGRESP:
+		// Lock for reading and updating pingrespcs.
+		cli.mupingrespcs.Lock()
+
+		// Check the length of pingrespcs.
+		if len(cli.pingrespcs) == 0 {
+			// End the function if there is no channel in pingrespcs.
+			return nil
+		}
+
+		// Get the first channel in pingrespcs.
+		pingrespc := cli.pingrespcs[0]
+
+		// Remove the first channel from pingrespcs.
+		cli.pingrespcs = cli.pingrespcs[1:]
+
+		// Unlock.
+		cli.mupingrespcs.Unlock()
+
+		// Notify the arrival of the PINGRESP Packet if possible.
+		select {
+		case pingrespc <- struct{}{}:
+		default:
+		}
 	case
 		packet.TypePUBLISH,
 		packet.TypePUBACK,
@@ -380,8 +410,7 @@ func (cli *Client) handlePacket(p packet.Packet) error {
 		packet.TypePUBREL,
 		packet.TypePUBCOMP,
 		packet.TypeSUBACK,
-		packet.TypeUNSUBACK,
-		packet.TypePINGRESP:
+		packet.TypeUNSUBACK:
 	default:
 		return packet.ErrInvalidPacketType
 	}
@@ -422,40 +451,88 @@ func (cli *Client) handleErrorAndDisconn(err error) {
 }
 
 // sendPackets sends Packets to the Server.
-func (cli *Client) sendPackets(keepAlive uint16) {
-	defer cli.wgConn.Done()
+func (cli *Client) sendPackets(keepAlive time.Duration, pingrespTimeout time.Duration) {
+	defer func() {
+		// Lock for reading and updating pingrespcs.
+		cli.mupingrespcs.Lock()
+
+		// Close the channels which handle a signal which
+		// notifies the arrival of the PINGREQ Packet.
+		for _, pingrespc := range cli.pingrespcs {
+			close(pingrespc)
+		}
+
+		// Initialize pingrespcs
+		cli.pingrespcs = make([]chan struct{}, 0)
+
+		// Unlock.
+		cli.mupingrespcs.Unlock()
+
+		cli.wgConn.Done()
+	}()
 
 	for {
 		var keepAlivec <-chan time.Time
 
 		if keepAlive > 0 {
-			keepAlivec = time.After(time.Duration(keepAlive) * time.Second)
+			keepAlivec = time.After(keepAlive * time.Second)
 		}
 
 		select {
 		case p := <-cli.sendc:
-			cli.sendPacket(p)
+			// Lock for sending the Packet.
+			cli.mu.RLock()
+
+			// Send the Packet to the Server.
+			err := cli.send(p)
+
+			// Unlock.
+			cli.mu.RUnlock()
+
+			if err != nil {
+				// Handle the error and disconnect the Network Connection.
+				cli.handleErrorAndDisconn(err)
+
+				// End this function.
+				return
+			}
 		case <-keepAlivec:
-			cli.sendPacket(packet.NewPINGREQ())
+			// Lock for sending the Packet.
+			cli.mu.RLock()
+
+			// Send a PINGREQ Packet to the Server.
+			err := cli.send(packet.NewPINGREQ())
+
+			// Unlock.
+			cli.mu.RUnlock()
+
+			if err != nil {
+				// Handle the error and disconnect the Network Connection.
+				cli.handleErrorAndDisconn(err)
+
+				// End this function.
+				return
+			}
+
+			// Create a channel which handles a PINGRESP Packet.
+			pingrespc := make(chan struct{})
+
+			// Lock for appending the channel to pingrespcs.
+			cli.mupingrespcs.Lock()
+
+			// Append the channel to pingrespcs.
+			cli.pingrespcs = append(cli.pingrespcs, pingrespc)
+
+			// Unlock.
+			cli.mupingrespcs.Unlock()
+
+			// Launch a goroutine which waits for receiving the PINGRESP Packet.
+			cli.wgConn.Add(1)
+			go cli.waitPacket(pingrespc, pingrespTimeout, ErrPINGRESPTimeout)
 		case <-cli.sendEndc:
+			// End this function.
 			return
 		}
-	}
-}
-
-// sendPacket sends a Packet to the Server.
-func (cli *Client) sendPacket(p packet.Packet) {
-	// Lock for sending the Packet.
-	cli.mu.RLock()
-
-	// Send the Packet to the Server.
-	err := cli.send(p)
-
-	// Unlock.
-	cli.mu.RUnlock()
-
-	if err != nil {
-		cli.handleErrorAndDisconn(err)
 	}
 }
 
@@ -485,6 +562,11 @@ func New(opts *Options) *Client {
 		for {
 			select {
 			case <-cli.disconnc:
+				if err := cli.Disconnect(); err != nil {
+					if cli.errHandler != nil {
+						cli.errHandler(err)
+					}
+				}
 			case <-cli.disconnEndc:
 				// End the goroutine.
 				return
