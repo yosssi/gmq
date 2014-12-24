@@ -66,3 +66,13 @@ func TestNewPUBLISH_optsNil(t *testing.T) {
 		nilErrorExpected(t, err)
 	}
 }
+
+func TestNewPUBLISH_validateErr(t *testing.T) {
+	_, err := NewPUBLISH(&PUBLISHOptions{
+		QoS: 0x03,
+	})
+
+	if err != ErrInvalidQoS {
+		invalidError(t, err, ErrInvalidQoS)
+	}
+}
