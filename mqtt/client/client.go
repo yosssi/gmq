@@ -58,7 +58,8 @@ type Client struct {
 	// mupingrespcs is the Mutex for pingrespcs.
 	mupingrespcs sync.RWMutex
 	// pingrespcs is the slice of the channels which
-	// handle a PINGRESP Packet.
+	// handle the signal to notify the arrival of
+	// the PINGRESP Packet.
 	pingrespcs []chan struct{}
 
 	// errHandler is the error handler.
@@ -514,7 +515,8 @@ func (cli *Client) sendPackets(keepAlive time.Duration, pingrespTimeout time.Dur
 				return
 			}
 
-			// Create a channel which handles a PINGRESP Packet.
+			// Create a channel which handles the signal to notify the arrival of
+			// the PINGRESP Packet.
 			pingrespc := make(chan struct{})
 
 			// Lock for appending the channel to pingrespcs.
