@@ -1,6 +1,6 @@
 package packet
 
-// puback represents a PUBACK Packet.
+// pubrel represents a PUBREL Packet.
 type pubrel struct {
 	base
 	// packetID is the Packet Identifier of the variable header.
