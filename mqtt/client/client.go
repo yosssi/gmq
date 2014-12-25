@@ -409,6 +409,21 @@ func (cli *Client) handlePacket(p packet.Packet) error {
 
 		// Unlock.
 		cli.muSess.Unlock()
+	case packet.TypePUBREC:
+		// Lock for update.
+		cli.muSess.Lock()
+
+		// Extract the Packet Identifier of the Packet.
+		id := p.PacketID()
+
+		// Discard the sending Packet.
+		if _, exist := cli.sess.sendingPackets[id]; exist {
+			delete(cli.sess.sendingPackets, id)
+		}
+		// TODO
+		fmt.Println("PUBREC!!!")
+		// Unlock.
+		cli.muSess.Unlock()
 	case packet.TypePINGRESP:
 		// Lock for reading and updating pingrespcs.
 		cli.conn.muPINGRESPs.Lock()
@@ -435,7 +450,6 @@ func (cli *Client) handlePacket(p packet.Packet) error {
 		}
 	case
 		packet.TypePUBLISH,
-		packet.TypePUBREC,
 		packet.TypePUBREL,
 		packet.TypePUBCOMP,
 		packet.TypeSUBACK,

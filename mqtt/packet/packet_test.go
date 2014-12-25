@@ -20,6 +20,12 @@ func TestNewFromBytes_PUBACK(t *testing.T) {
 	}
 }
 
+func TestNewFromBytes_PUBREC(t *testing.T) {
+	if _, err := NewFromBytes([]byte{TypePUBREC << 4, 0x02}, []byte{0x00, 0x00}); err != nil {
+		nilErrorExpected(t, err)
+	}
+}
+
 func TestNewFromBytes_PINGRESP(t *testing.T) {
 	if _, err := NewFromBytes([]byte{TypePINGRESP << 4, 0x00}, nil); err != nil {
 		nilErrorExpected(t, err)

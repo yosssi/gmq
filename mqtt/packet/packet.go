@@ -31,6 +31,8 @@ func NewFromBytes(fixedHeader FixedHeader, remaining []byte) (Packet, error) {
 		return NewCONNACKFromBytes(fixedHeader, remaining)
 	case TypePUBACK:
 		return NewPUBACKFromBytes(fixedHeader, remaining)
+	case TypePUBREC:
+		return NewPUBRECFromBytes(fixedHeader, remaining)
 	case TypePINGRESP:
 		return NewPINGRESPFromBytes(fixedHeader, remaining)
 	default:
