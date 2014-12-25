@@ -2,6 +2,18 @@ package packet
 
 import "testing"
 
+func Test_puback_PacketID(t *testing.T) {
+	want := uint16(1)
+
+	p := puback{
+		packetID: want,
+	}
+
+	if got := p.PacketID(); got != want {
+		t.Errorf("got => %d, want => %d", got, want)
+	}
+}
+
 func TestNewPUBACKFromBytes_validatePUBACKBytesErr(t *testing.T) {
 	if _, err := NewPUBACKFromBytes(nil, nil); err != ErrInvalidFixedHeaderLen {
 		invalidError(t, err, ErrInvalidFixedHeaderLen)

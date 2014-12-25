@@ -39,6 +39,14 @@ func Test_base_Type(t *testing.T) {
 	}
 }
 
+func Test_base_PacketID(t *testing.T) {
+	b := base{}
+
+	if id, want := b.PacketID(), uint16(0); id != want {
+		t.Errorf("id => %d, want => %d", id, want)
+	}
+}
+
 func Test_base_appendRemainingLength(t *testing.T) {
 	b := base{
 		variableHeader: []byte{0x00},

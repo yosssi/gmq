@@ -39,6 +39,12 @@ func (b *base) Type() (byte, error) {
 	return b.fixedHeader.ptype()
 }
 
+// PacketID returns the Packet Identifier of the Packet.
+// The base struct always returns zero-value.
+func (b *base) PacketID() uint16 {
+	return 0
+}
+
 // appendRemainingLength appends the Remaining Length
 // to the fixed header.
 func (b *base) appendRemainingLength() {

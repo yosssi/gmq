@@ -13,6 +13,11 @@ type puback struct {
 	packetID uint16
 }
 
+// PacketID returns the Packet Identifier of the Packet.
+func (p *puback) PacketID() uint16 {
+	return p.packetID
+}
+
 // NewPUBACKFromBytes creates the PUBACK Packet
 // from the byte data and returns it.
 func NewPUBACKFromBytes(fixedHeader FixedHeader, variableHeader []byte) (Packet, error) {

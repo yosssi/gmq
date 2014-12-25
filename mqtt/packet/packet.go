@@ -11,8 +11,10 @@ var ErrInvalidPacketType = errors.New("invalid MQTT Control Packet type")
 // Packet represents an MQTT Control Packet.
 type Packet interface {
 	io.WriterTo
-	// Type return the MQTT Control Packet type of the Packet.
+	// Type returns the MQTT Control Packet type of the Packet.
 	Type() (byte, error)
+	// PacketID returns the Packet Identifier of the Packet.
+	PacketID() uint16
 }
 
 // NewFromBytes creates a Packet from the byte data and returns it.
