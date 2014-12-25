@@ -1,28 +1,28 @@
 package packet
 
-// Length of the fixed header of the PUBACK Packet
-const lenPUBACKFixedHeader = 2
+// Length of the fixed header of the PUBREC Packet
+const lenPUBRECFixedHeader = 2
 
-// Length of the variable header of the PUBACK Packet
-const lenPUBACKVariableHeader = 2
+// Length of the variable header of the PUBREC Packet
+const lenPUBRECVariableHeader = 2
 
-// puback represents a PUBACK Packet.
-type puback struct {
+// pubrec represents a PUBREC Packet.
+type pubrec struct {
 	base
 	// packetID is the Packet Identifier of the variable header.
 	packetID uint16
 }
 
 // PacketID returns the Packet Identifier of the Packet.
-func (p *puback) PacketID() uint16 {
+func (p *pubrec) PacketID() uint16 {
 	return p.packetID
 }
 
-// NewPUBACKFromBytes creates a PUBACK Packet
+// NewPUBRECFromBytes creates a PUBREC Packet
 // from the byte data and returns it.
-func NewPUBACKFromBytes(fixedHeader FixedHeader, variableHeader []byte) (Packet, error) {
+func NewPUBRECFromBytes(fixedHeader FixedHeader, variableHeader []byte) (Packet, error) {
 	// Validate the byte data.
-	if err := validatePUBACKBytes(fixedHeader, variableHeader); err != nil {
+	if err := validatePUBRECBytes(fixedHeader, variableHeader); err != nil {
 		return nil, err
 	}
 
@@ -31,8 +31,8 @@ func NewPUBACKFromBytes(fixedHeader FixedHeader, variableHeader []byte) (Packet,
 	// the returned error is not be taken care of.
 	packetID, _ := decodeUint16(variableHeader)
 
-	// Create a PUBACK Packet.
-	p := &puback{
+	// Create a PUBREC Packet.
+	p := &pubrec{
 		packetID: packetID,
 	}
 
@@ -46,8 +46,8 @@ func NewPUBACKFromBytes(fixedHeader FixedHeader, variableHeader []byte) (Packet,
 	return p, nil
 }
 
-// validatePUBACKBytes validates the fixed header and the variable header.
-func validatePUBACKBytes(fixedHeader FixedHeader, variableHeader []byte) error {
+// validatePUBRECBytes validates the fixed header and the variable header.
+func validatePUBRECBytes(fixedHeader FixedHeader, variableHeader []byte) error {
 	// Extract the MQTT Control Packet type.
 	ptype, err := fixedHeader.ptype()
 	if err != nil {
@@ -55,12 +55,12 @@ func validatePUBACKBytes(fixedHeader FixedHeader, variableHeader []byte) error {
 	}
 
 	// Check the length of the fixed header.
-	if len(fixedHeader) != lenPUBACKFixedHeader {
+	if len(fixedHeader) != lenPUBRECFixedHeader {
 		return ErrInvalidFixedHeaderLen
 	}
 
 	// Check the MQTT Control Packet type.
-	if ptype != TypePUBACK {
+	if ptype != TypePUBREC {
 		return ErrInvalidPacketType
 	}
 
@@ -70,12 +70,12 @@ func validatePUBACKBytes(fixedHeader FixedHeader, variableHeader []byte) error {
 	}
 
 	// Check the Remaining Length of the fixed header.
-	if fixedHeader[1] != lenPUBACKVariableHeader {
+	if fixedHeader[1] != lenPUBRECVariableHeader {
 		return ErrInvalidRemainingLength
 	}
 
 	// Check the length of the variable header.
-	if len(variableHeader) != lenPUBACKVariableHeader {
+	if len(variableHeader) != lenPUBRECVariableHeader {
 		return ErrInvalidVariableHeaderLen
 	}
 
