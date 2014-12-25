@@ -26,6 +26,7 @@ var (
 	ErrPacketIDExhaused = errors.New("Packet Identifiers are exhausted")
 	ErrInvalidPacketID  = errors.New("invalid Packet Identifier")
 	ErrInvalidPINGRESP  = errors.New("invalid PINGRESP Packet")
+	ErrInvalidNoSubReq  = errors.New("no subscription requests are specified")
 )
 
 // Client represents a Client.
@@ -224,6 +225,29 @@ func (cli *Client) Publish(opts *PublishOptions) error {
 
 	// Send the Packet to the Server.
 	cli.conn.send <- p
+
+	return nil
+}
+
+// Subscribe sends a SUBSCRIBE Packet to the Server.
+func (cli *Client) Subscribe(opts *SubscribeOptions) error {
+	// Lock for reading.
+	cli.muConn.RLock()
+
+	// Unlock.
+	defer cli.muConn.RUnlock()
+
+	// Check the Network Connection.
+	if cli.conn == nil {
+		return ErrNotYetConnected
+	}
+
+	// Initialize the options.
+	if opts == nil || len(opts.SubReqs) == 0 {
+		return ErrInvalidNoSubReq
+	}
+
+	// TODO
 
 	return nil
 }
