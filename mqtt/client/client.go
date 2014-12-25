@@ -25,6 +25,7 @@ var (
 	ErrPINGRESPTimeout  = errors.New("the PINGRESP Packet was not received within a reasonalbe amount of time")
 	ErrPacketIDExhaused = errors.New("Packet Identifiers are exhausted")
 	ErrInvalidPacketID  = errors.New("invalid Packet Identifier")
+	ErrInvalidPINGRESP  = errors.New("invalid PINGRESP Packet")
 )
 
 // Client represents a Client.
@@ -391,89 +392,15 @@ func (cli *Client) handlePacket(p packet.Packet) error {
 
 	switch ptype {
 	case packet.TypeCONNACK:
-		// Notify the arrival of the CONNACK Packet if possible.
-		select {
-		case cli.conn.connack <- struct{}{}:
-		default:
-		}
+		return cli.handleCONNACK()
 	case packet.TypePUBACK:
-		// Lock for update.
-		cli.muSess.Lock()
-
-		// Unlock.
-		defer cli.muSess.Unlock()
-
-		// Extract the Packet Identifier of the Packet.
-		id := p.PacketID()
-
-		// Validate the Packet Identifier.
-		return cli.validateSendingPacketID(id, packet.TypePUBLISH)
+		return cli.handlePUBACK(p)
 	case packet.TypePUBREC:
-		// Lock for update.
-		cli.muSess.Lock()
-
-		// Unlock.
-		defer cli.muSess.Unlock()
-
-		// Extract the Packet Identifier of the Packet.
-		id := p.PacketID()
-
-		// Validate the Packet Identifier.
-		if err := cli.validateSendingPacketID(id, packet.TypePUBLISH); err != nil {
-			return err
-		}
-
-		// Create a PUBREL Packet.
-		pubrel := packet.NewPUBREL(&packet.PUBRELOptions{
-			PacketID: id,
-		})
-
-		// Set the Packet to the Session.
-		cli.sess.sendingPackets[id] = pubrel
-
-		// Send the Packet to the Server.
-		cli.conn.send <- pubrel
+		return cli.handlePUBREC(p)
 	case packet.TypePUBCOMP:
-		// Lock for update.
-		cli.muSess.Lock()
-
-		// Unlock.
-		defer cli.muSess.Unlock()
-
-		// Extract the Packet Identifier of the Packet.
-		id := p.PacketID()
-
-		// Validate the Packet Identifier.
-		if err := cli.validateSendingPacketID(id, packet.TypePUBREL); err != nil {
-			return err
-		}
-
-		// Delete the PUBREL Packet from the Session.
-		delete(cli.sess.sendingPackets, id)
+		return cli.handlePUBCOMP(p)
 	case packet.TypePINGRESP:
-		// Lock for reading and updating pingrespcs.
-		cli.conn.muPINGRESPs.Lock()
-
-		// Check the length of pingrespcs.
-		if len(cli.conn.pingresps) == 0 {
-			// End the function if there is no channel in pingrespcs.
-			return nil
-		}
-
-		// Get the first channel in pingrespcs.
-		pingrespc := cli.conn.pingresps[0]
-
-		// Remove the first channel from pingrespcs.
-		cli.conn.pingresps = cli.conn.pingresps[1:]
-
-		// Unlock.
-		cli.conn.muPINGRESPs.Unlock()
-
-		// Notify the arrival of the PINGRESP Packet if possible.
-		select {
-		case pingrespc <- struct{}{}:
-		default:
-		}
+		return cli.handlePINGRESP()
 	case
 		packet.TypePUBLISH,
 		packet.TypePUBREL,
@@ -481,6 +408,113 @@ func (cli *Client) handlePacket(p packet.Packet) error {
 		packet.TypeUNSUBACK:
 	default:
 		return packet.ErrInvalidPacketType
+	}
+
+	return nil
+}
+
+// handleCONNACK handles the CONNACK Packet.
+func (cli *Client) handleCONNACK() error {
+	// Notify the arrival of the CONNACK Packet if possible.
+	select {
+	case cli.conn.connack <- struct{}{}:
+	default:
+	}
+
+	return nil
+}
+
+// handlePUBACK handles the PUBACK Packet.
+func (cli *Client) handlePUBACK(p packet.Packet) error {
+	// Lock for update.
+	cli.muSess.Lock()
+
+	// Unlock.
+	defer cli.muSess.Unlock()
+
+	// Extract the Packet Identifier of the Packet.
+	id := p.PacketID()
+
+	// Validate the Packet Identifier.
+	return cli.validateSendingPacketID(id, packet.TypePUBLISH)
+}
+
+// handlePUBREC handles the PUBREC Packet.
+func (cli *Client) handlePUBREC(p packet.Packet) error {
+	// Lock for update.
+	cli.muSess.Lock()
+
+	// Unlock.
+	defer cli.muSess.Unlock()
+
+	// Extract the Packet Identifier of the Packet.
+	id := p.PacketID()
+
+	// Validate the Packet Identifier.
+	if err := cli.validateSendingPacketID(id, packet.TypePUBLISH); err != nil {
+		return err
+	}
+
+	// Create a PUBREL Packet.
+	pubrel := packet.NewPUBREL(&packet.PUBRELOptions{
+		PacketID: id,
+	})
+
+	// Set the Packet to the Session.
+	cli.sess.sendingPackets[id] = pubrel
+
+	// Send the Packet to the Server.
+	cli.conn.send <- pubrel
+
+	return nil
+}
+
+// handlePUBCOMP handles the PUBCOMP Packet.
+func (cli *Client) handlePUBCOMP(p packet.Packet) error {
+	// Lock for update.
+	cli.muSess.Lock()
+
+	// Unlock.
+	defer cli.muSess.Unlock()
+
+	// Extract the Packet Identifier of the Packet.
+	id := p.PacketID()
+
+	// Validate the Packet Identifier.
+	if err := cli.validateSendingPacketID(id, packet.TypePUBREL); err != nil {
+		return err
+	}
+
+	// Delete the PUBREL Packet from the Session.
+	delete(cli.sess.sendingPackets, id)
+
+	return nil
+}
+
+// handlePINGRESP handles the PINGRESP Packet.
+func (cli *Client) handlePINGRESP() error {
+	// Lock for reading and updating pingrespcs.
+	cli.conn.muPINGRESPs.Lock()
+
+	// Check the length of pingrespcs.
+	if len(cli.conn.pingresps) == 0 {
+		// Return an error if there is no channel in pingrespcs.
+		return ErrInvalidPINGRESP
+	}
+
+	// Get the first channel in pingrespcs.
+	pingrespc := cli.conn.pingresps[0]
+
+	// Remove the first channel from pingrespcs.
+	cli.conn.pingresps = cli.conn.pingresps[1:]
+
+	// Unlock.
+	cli.conn.muPINGRESPs.Unlock()
+
+	// Notify the arrival of the PINGRESP Packet if possible.
+	select {
+	case pingrespc <- struct{}{}:
+	default:
 	}
 
 	return nil
