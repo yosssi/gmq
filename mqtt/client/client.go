@@ -396,7 +396,7 @@ func (cli *Client) handlePacket(p packet.Packet) error {
 		default:
 		}
 	case packet.TypePUBACK:
-		fmt.Println("PUBACK!!!", p)
+		// TODO
 	case packet.TypePINGRESP:
 		// Lock for reading and updating pingrespcs.
 		cli.conn.muPINGRESPs.Lock()
