@@ -214,49 +214,10 @@ func (cli *Client) Publish(opts *PublishOptions) error {
 		opts = &PublishOptions{}
 	}
 
-	// Define a Packet Identifier.
-	var packetID uint16
-
-	if opts.QoS != mqtt.QoS0 {
-		// Lock for reading and updating the Session.
-		cli.muSess.Lock()
-
-		// Define an error.
-		var err error
-
-		// Generate a Packet Identifer.
-		packetID, err = cli.generatePacketID()
-		if err != nil {
-			// Unlock.
-			cli.muSess.Unlock()
-
-			return err
-		}
-	}
-
 	// Create a PUBLISH Packet.
-	p, err := packet.NewPUBLISH(&packet.PUBLISHOptions{
-		QoS:       opts.QoS,
-		Retain:    opts.Retain,
-		TopicName: []byte(opts.TopicName),
-		PacketID:  packetID,
-		Message:   []byte(opts.Message),
-	})
+	p, err := cli.newPUBLISHPacket(opts)
 	if err != nil {
-		if opts.QoS != mqtt.QoS0 {
-			// Unlock.
-			cli.muSess.Unlock()
-		}
-
 		return err
-	}
-
-	if opts.QoS != mqtt.QoS0 {
-		// Set the Packet to the Session.
-		cli.sess.sendingPackets[packetID] = p
-
-		// Unlock.
-		cli.muSess.Unlock()
 	}
 
 	// Send the Packet to the Server.
@@ -434,6 +395,8 @@ func (cli *Client) handlePacket(p packet.Packet) error {
 		case cli.conn.connack <- struct{}{}:
 		default:
 		}
+	case packet.TypePUBACK:
+		fmt.Println("PUBACK!!!", p)
 	case packet.TypePINGRESP:
 		// Lock for reading and updating pingrespcs.
 		cli.conn.muPINGRESPs.Lock()
@@ -460,7 +423,6 @@ func (cli *Client) handlePacket(p packet.Packet) error {
 		}
 	case
 		packet.TypePUBLISH,
-		packet.TypePUBACK,
 		packet.TypePUBREC,
 		packet.TypePUBREL,
 		packet.TypePUBCOMP,
@@ -613,6 +575,47 @@ func (cli *Client) generatePacketID() (uint16, error) {
 
 	// Return an error if available ids are not found.
 	return 0, ErrPacketIDExhaused
+}
+
+// newPUBLISHPacket creates and returns a PUBLISH Packet.
+func (cli *Client) newPUBLISHPacket(opts *PublishOptions) (packet.Packet, error) {
+	// Define a Packet Identifier.
+	var packetID uint16
+
+	if opts.QoS != mqtt.QoS0 {
+		// Lock for reading and updating the Session.
+		cli.muSess.Lock()
+
+		defer cli.muSess.Unlock()
+
+		// Define an error.
+		var err error
+
+		// Generate a Packet Identifer.
+		if packetID, err = cli.generatePacketID(); err != nil {
+			return nil, err
+		}
+	}
+
+	// Create a PUBLISH Packet.
+	p, err := packet.NewPUBLISH(&packet.PUBLISHOptions{
+		QoS:       opts.QoS,
+		Retain:    opts.Retain,
+		TopicName: []byte(opts.TopicName),
+		PacketID:  packetID,
+		Message:   []byte(opts.Message),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if opts.QoS != mqtt.QoS0 {
+		// Set the Packet to the Session.
+		cli.sess.sendingPackets[packetID] = p
+	}
+
+	// Return the Packet.
+	return p, nil
 }
 
 // New creates and returns a Client.

@@ -14,6 +14,12 @@ func TestNewFromBytes_CONNACK(t *testing.T) {
 	}
 }
 
+func TestNewFromBytes_PUBACK(t *testing.T) {
+	if _, err := NewFromBytes([]byte{TypePUBACK << 4, 0x02}, []byte{0x00, 0x00}); err != nil {
+		nilErrorExpected(t, err)
+	}
+}
+
 func TestNewFromBytes_PINGRESP(t *testing.T) {
 	if _, err := NewFromBytes([]byte{TypePINGRESP << 4, 0x00}, nil); err != nil {
 		nilErrorExpected(t, err)
