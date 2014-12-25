@@ -24,6 +24,7 @@ var (
 	ErrCONNACKTimeout   = errors.New("the CONNACK Packet was not received within a reasonalbe amount of time")
 	ErrPINGRESPTimeout  = errors.New("the PINGRESP Packet was not received within a reasonalbe amount of time")
 	ErrPacketIDExhaused = errors.New("Packet Identifiers are exhausted")
+	ErrInvalidPacketID  = errors.New("invalid Packet Identifier")
 )
 
 // Client represents a Client.
@@ -399,31 +400,56 @@ func (cli *Client) handlePacket(p packet.Packet) error {
 		// Lock for update.
 		cli.muSess.Lock()
 
+		// Unlock.
+		defer cli.muSess.Unlock()
+
 		// Extract the Packet Identifier of the Packet.
 		id := p.PacketID()
 
-		// Discard the sending Packet.
-		if _, exist := cli.sess.sendingPackets[id]; exist {
-			delete(cli.sess.sendingPackets, id)
-		}
-
-		// Unlock.
-		cli.muSess.Unlock()
+		// Validate the Packet Identifier.
+		return cli.validateSendingPacketID(id, packet.TypePUBLISH)
 	case packet.TypePUBREC:
 		// Lock for update.
 		cli.muSess.Lock()
 
+		// Unlock.
+		defer cli.muSess.Unlock()
+
 		// Extract the Packet Identifier of the Packet.
 		id := p.PacketID()
 
-		// Discard the sending Packet.
-		if _, exist := cli.sess.sendingPackets[id]; exist {
-			delete(cli.sess.sendingPackets, id)
+		// Validate the Packet Identifier.
+		if err := cli.validateSendingPacketID(id, packet.TypePUBLISH); err != nil {
+			return err
 		}
-		// TODO
-		fmt.Println("PUBREC!!!")
+
+		// Create a PUBREL Packet.
+		pubrel := packet.NewPUBREL(&packet.PUBRELOptions{
+			PacketID: id,
+		})
+
+		// Set the Packet to the Session.
+		cli.sess.sendingPackets[id] = pubrel
+
+		// Send the Packet to the Server.
+		cli.conn.send <- pubrel
+	case packet.TypePUBCOMP:
+		// Lock for update.
+		cli.muSess.Lock()
+
 		// Unlock.
-		cli.muSess.Unlock()
+		defer cli.muSess.Unlock()
+
+		// Extract the Packet Identifier of the Packet.
+		id := p.PacketID()
+
+		// Validate the Packet Identifier.
+		if err := cli.validateSendingPacketID(id, packet.TypePUBREL); err != nil {
+			return err
+		}
+
+		// Delete the PUBREL Packet from the Session.
+		delete(cli.sess.sendingPackets, id)
 	case packet.TypePINGRESP:
 		// Lock for reading and updating pingrespcs.
 		cli.conn.muPINGRESPs.Lock()
@@ -451,7 +477,6 @@ func (cli *Client) handlePacket(p packet.Packet) error {
 	case
 		packet.TypePUBLISH,
 		packet.TypePUBREL,
-		packet.TypePUBCOMP,
 		packet.TypeSUBACK,
 		packet.TypeUNSUBACK:
 	default:
@@ -642,6 +667,35 @@ func (cli *Client) newPUBLISHPacket(opts *PublishOptions) (packet.Packet, error)
 
 	// Return the Packet.
 	return p, nil
+}
+
+// validateSendingPacketID checks if the Packet which has
+// the Packet Identifier and the MQTT Control Packet type
+// specified by the parameters exists in the Session's
+// sendingPackets.
+func (cli *Client) validateSendingPacketID(id uint16, ptype byte) error {
+	// Extract the Packet from the Session.
+	p, exist := cli.sess.sendingPackets[id]
+
+	if !exist {
+		// Return an error if there is no Packet which has the Packet Identifier
+		// specified by the parameter.
+		return ErrInvalidPacketID
+	}
+
+	// Extract the MQTT Control Packet type of the Packet.
+	t, err := p.Type()
+	if err != nil {
+		return err
+	}
+
+	if t != ptype {
+		// Return an error if the Packet's MQTT Control Packet type does not
+		// equal to one specified by the parameter.
+		return ErrInvalidPacketID
+	}
+
+	return nil
 }
 
 // New creates and returns a Client.
