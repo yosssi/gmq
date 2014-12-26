@@ -1,7 +1,7 @@
 package packet
 
-// connect represents a CONNECT Packet.
-type connect struct {
+// CONNECT represents a CONNECT Packet.
+type CONNECT struct {
 	base
 	// clientID is the Client Identifier of the payload.
 	clientID []byte
@@ -24,7 +24,7 @@ type connect struct {
 }
 
 // setFixedHeader sets the fixed header to the Packet.
-func (p *connect) setFixedHeader() {
+func (p *CONNECT) setFixedHeader() {
 	// Append the first byte to the fixed header.
 	p.fixedHeader = append(p.fixedHeader, TypeCONNECT<<4)
 
@@ -33,7 +33,7 @@ func (p *connect) setFixedHeader() {
 }
 
 // setVariableHeader sets the variable header to the Packet.
-func (p *connect) setVariableHeader() {
+func (p *CONNECT) setVariableHeader() {
 	// Convert the Keep Alive to the slice.
 	keepAlive := encodeUint16(p.keepAlive)
 
@@ -53,7 +53,7 @@ func (p *connect) setVariableHeader() {
 }
 
 // setPayload sets the payload to the Packet.
-func (p *connect) setPayload() {
+func (p *CONNECT) setPayload() {
 	// Append the Client Identifier to the payload.
 	p.payload = appendLenStr(p.payload, p.clientID)
 
@@ -76,7 +76,7 @@ func (p *connect) setPayload() {
 }
 
 // connectFlags creates and returns a byte which represents the Connect Flags.
-func (p *connect) connectFlags() byte {
+func (p *CONNECT) connectFlags() byte {
 	// Create a byte which represents the Connect Flags.
 	var b byte
 
@@ -113,7 +113,7 @@ func (p *connect) connectFlags() byte {
 }
 
 // will return true if both the Will Topic and the Will Message are not zero-byte.
-func (p *connect) will() bool {
+func (p *CONNECT) will() bool {
 	return len(p.willTopic) > 0 && len(p.willMessage) > 0
 }
 
@@ -130,7 +130,7 @@ func NewCONNECT(opts *CONNECTOptions) (Packet, error) {
 	}
 
 	// Create a CONNECT Packet.
-	p := &connect{
+	p := &CONNECT{
 		clientID:     opts.ClientID,
 		userName:     opts.UserName,
 		password:     opts.Password,

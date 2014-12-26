@@ -2,8 +2,8 @@ package packet
 
 import "github.com/yosssi/gmq/mqtt"
 
-// publish represents a PUBLISH Packet.
-type publish struct {
+// PUBLISH represents a PUBLISH Packet.
+type PUBLISH struct {
 	base
 	// dup is the DUP flag of the fixed header.
 	dup bool
@@ -14,13 +14,13 @@ type publish struct {
 	// topicName is the Topic Name of the varible header.
 	topicName []byte
 	// packetID is the Packet Identifier of the variable header.
-	packetID uint16
+	PacketID uint16
 	// message is the Application Message of the payload.
 	message []byte
 }
 
 // setFixedHeader sets the fixed header to the Packet.
-func (p *publish) setFixedHeader() {
+func (p *PUBLISH) setFixedHeader() {
 	// Define the first byte of the fixed header.
 	b := TypePUBLISH << 4
 
@@ -45,18 +45,18 @@ func (p *publish) setFixedHeader() {
 }
 
 // setVariableHeader sets the variable header to the Packet.
-func (p *publish) setVariableHeader() {
+func (p *PUBLISH) setVariableHeader() {
 	// Append the Topic Name to the variable header.
 	p.variableHeader = appendLenStr(p.variableHeader, p.topicName)
 
 	if p.qos != mqtt.QoS0 {
 		// Append the Packet Identifier to the variable header.
-		p.variableHeader = append(p.variableHeader, encodeUint16(p.packetID)...)
+		p.variableHeader = append(p.variableHeader, encodeUint16(p.PacketID)...)
 	}
 }
 
 // setPayload sets the payload to the Packet.
-func (p *publish) setPayload() {
+func (p *PUBLISH) setPayload() {
 	p.payload = p.message
 }
 
@@ -73,12 +73,12 @@ func NewPUBLISH(opts *PUBLISHOptions) (Packet, error) {
 	}
 
 	// Create a PUBLISH Packet.
-	p := &publish{
+	p := &PUBLISH{
 		dup:       opts.DUP,
 		qos:       opts.QoS,
 		retain:    opts.Retain,
 		topicName: opts.TopicName,
-		packetID:  opts.PacketID,
+		PacketID:  opts.PacketID,
 		message:   opts.Message,
 	}
 

@@ -1,19 +1,14 @@
 package packet
 
-// pubrel represents a PUBREL Packet.
-type pubrel struct {
+// PUBREL represents a PUBREL Packet.
+type PUBREL struct {
 	base
-	// packetID is the Packet Identifier of the variable header.
-	packetID uint16
-}
-
-// PacketID returns the Packet Identifier of the Packet.
-func (p *pubrel) PacketID() uint16 {
-	return p.packetID
+	// PacketID is the Packet Identifier of the variable header.
+	PacketID uint16
 }
 
 // setFixedHeader sets the fixed header to the Packet.
-func (p *pubrel) setFixedHeader() {
+func (p *PUBREL) setFixedHeader() {
 	// Append the first byte to the fixed header.
 	p.fixedHeader = append(p.fixedHeader, TypePUBREL<<4|0x02)
 
@@ -22,9 +17,9 @@ func (p *pubrel) setFixedHeader() {
 }
 
 // setVariableHeader sets the variable header to the Packet.
-func (p *pubrel) setVariableHeader() {
+func (p *PUBREL) setVariableHeader() {
 	// Append the Packet Identifier to the variable header.
-	p.variableHeader = append(p.variableHeader, encodeUint16(p.packetID)...)
+	p.variableHeader = append(p.variableHeader, encodeUint16(p.PacketID)...)
 }
 
 // NewPUBREL creates and returns a PUBREL Packet.
@@ -35,8 +30,8 @@ func NewPUBREL(opts *PUBRELOptions) Packet {
 	}
 
 	// Create a PUBREL Packet.
-	p := &pubrel{
-		packetID: opts.PacketID,
+	p := &PUBREL{
+		PacketID: opts.PacketID,
 	}
 
 	// Set the variable header to the Packet.

@@ -6,8 +6,8 @@ import (
 	"github.com/yosssi/gmq/mqtt"
 )
 
-func Test_publish_setFixedHeader(t *testing.T) {
-	p := &publish{
+func TestPUBLISH_setFixedHeader(t *testing.T) {
+	p := &PUBLISH{
 		dup:    true,
 		retain: true,
 	}
@@ -25,11 +25,11 @@ func Test_publish_setFixedHeader(t *testing.T) {
 	}
 }
 
-func Test_publish_setVariableHeader(t *testing.T) {
-	p := &publish{
+func TestPUBLISH_setVariableHeader(t *testing.T) {
+	p := &PUBLISH{
 		qos:       mqtt.QoS1,
 		topicName: []byte("topicName"),
-		packetID:  1,
+		PacketID:  1,
 	}
 
 	p.setVariableHeader()
@@ -49,8 +49,8 @@ func Test_publish_setVariableHeader(t *testing.T) {
 	}
 }
 
-func Test_publish_setPayload(t *testing.T) {
-	p := &publish{
+func TestPUBLISH_setPayload(t *testing.T) {
+	p := &PUBLISH{
 		message: []byte{0x00, 0x01},
 	}
 

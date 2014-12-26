@@ -6,16 +6,11 @@ const lenPUBCOMPFixedHeader = 2
 // Length of the variable header of the PUBCOMP Packet
 const lenPUBCOMPVariableHeader = 2
 
-// pubcomp represents a PUBCOMP Packet.
-type pubcomp struct {
+// PUBCOMP represents a PUBCOMP Packet.
+type PUBCOMP struct {
 	base
 	// packetID is the Packet Identifier of the variable header.
-	packetID uint16
-}
-
-// PacketID returns the Packet Identifier of the Packet.
-func (p *pubcomp) PacketID() uint16 {
-	return p.packetID
+	PacketID uint16
 }
 
 // NewPUBCOMPFromBytes creates a PUBCOMP Packet
@@ -32,8 +27,8 @@ func NewPUBCOMPFromBytes(fixedHeader FixedHeader, variableHeader []byte) (Packet
 	packetID, _ := decodeUint16(variableHeader)
 
 	// Create a PUBCOMP Packet.
-	p := &pubcomp{
-		packetID: packetID,
+	p := &PUBCOMP{
+		PacketID: packetID,
 	}
 
 	// Set the fixed header to the Packet.

@@ -26,7 +26,7 @@ var (
 	ErrPacketIDExhaused = errors.New("Packet Identifiers are exhausted")
 	ErrInvalidPacketID  = errors.New("invalid Packet Identifier")
 	ErrInvalidPINGRESP  = errors.New("invalid PINGRESP Packet")
-	ErrInvalidNoSubReq  = errors.New("no subscription requests are specified")
+	ErrInvalidSUBACK    = errors.New("invalid SUBACK Packet")
 )
 
 // Client represents a Client.
@@ -231,23 +231,59 @@ func (cli *Client) Publish(opts *PublishOptions) error {
 
 // Subscribe sends a SUBSCRIBE Packet to the Server.
 func (cli *Client) Subscribe(opts *SubscribeOptions) error {
-	// Lock for reading.
-	cli.muConn.RLock()
+	// Lock for reading and updating.
+	cli.muConn.Lock()
 
 	// Unlock.
-	defer cli.muConn.RUnlock()
+	defer cli.muConn.Unlock()
 
 	// Check the Network Connection.
 	if cli.conn == nil {
 		return ErrNotYetConnected
 	}
 
-	// Initialize the options.
+	// Check the existence of the options.
 	if opts == nil || len(opts.SubReqs) == 0 {
-		return ErrInvalidNoSubReq
+		return packet.ErrInvalidNoSubReq
 	}
 
-	// TODO
+	// Define a Packet Identifier.
+	var packetID uint16
+
+	// Define an error.
+	var err error
+
+	// Lock for updating the Session.
+	cli.muSess.Lock()
+
+	defer cli.muSess.Unlock()
+
+	// Generate a Packet Identifer.
+	if packetID, err = cli.generatePacketID(); err != nil {
+		return err
+	}
+
+	// Create a SUBSCRIBE Packet.
+	p, err := packet.NewSUBSCRIBE(&packet.SUBSCRIBEOptions{
+		PacketID: packetID,
+		SubReqs:  opts.SubReqs,
+	})
+	if err != nil {
+		return err
+	}
+
+	// Set the Packet to the Session.
+	cli.sess.sendingPackets[packetID] = p
+
+	// Set the subscriptions to the Network Connection.
+	for _, s := range opts.SubReqs {
+		cli.conn.subscriptions[string(s.TopicFilter)] = &SubState{
+			ReqQoS: s.QoS,
+		}
+	}
+
+	// Send the Packet to the Server.
+	cli.conn.send <- p
 
 	return nil
 }
@@ -423,12 +459,13 @@ func (cli *Client) handlePacket(p packet.Packet) error {
 		return cli.handlePUBREC(p)
 	case packet.TypePUBCOMP:
 		return cli.handlePUBCOMP(p)
+	case packet.TypeSUBACK:
+		return cli.handleSUBACK(p)
 	case packet.TypePINGRESP:
 		return cli.handlePINGRESP()
 	case
 		packet.TypePUBLISH,
 		packet.TypePUBREL,
-		packet.TypeSUBACK,
 		packet.TypeUNSUBACK:
 	default:
 		return packet.ErrInvalidPacketType
@@ -457,10 +494,17 @@ func (cli *Client) handlePUBACK(p packet.Packet) error {
 	defer cli.muSess.Unlock()
 
 	// Extract the Packet Identifier of the Packet.
-	id := p.PacketID()
+	id := p.(*packet.PUBACK).PacketID
 
 	// Validate the Packet Identifier.
-	return cli.validateSendingPacketID(id, packet.TypePUBLISH)
+	if err := cli.validateSendingPacketID(id, packet.TypePUBLISH); err != nil {
+		return err
+	}
+
+	// Delete the PUBLISH Packet from the Session.
+	delete(cli.sess.sendingPackets, id)
+
+	return nil
 }
 
 // handlePUBREC handles the PUBREC Packet.
@@ -472,7 +516,7 @@ func (cli *Client) handlePUBREC(p packet.Packet) error {
 	defer cli.muSess.Unlock()
 
 	// Extract the Packet Identifier of the Packet.
-	id := p.PacketID()
+	id := p.(*packet.PUBREC).PacketID
 
 	// Validate the Packet Identifier.
 	if err := cli.validateSendingPacketID(id, packet.TypePUBLISH); err != nil {
@@ -484,7 +528,7 @@ func (cli *Client) handlePUBREC(p packet.Packet) error {
 		PacketID: id,
 	})
 
-	// Set the Packet to the Session.
+	// Set the PUBREL Packet to the Session.
 	cli.sess.sendingPackets[id] = pubrel
 
 	// Send the Packet to the Server.
@@ -502,7 +546,7 @@ func (cli *Client) handlePUBCOMP(p packet.Packet) error {
 	defer cli.muSess.Unlock()
 
 	// Extract the Packet Identifier of the Packet.
-	id := p.PacketID()
+	id := p.(*packet.PUBCOMP).PacketID
 
 	// Validate the Packet Identifier.
 	if err := cli.validateSendingPacketID(id, packet.TypePUBREL); err != nil {
@@ -512,6 +556,60 @@ func (cli *Client) handlePUBCOMP(p packet.Packet) error {
 	// Delete the PUBREL Packet from the Session.
 	delete(cli.sess.sendingPackets, id)
 
+	return nil
+}
+
+// handleSUBACK handles the SUBACK Packet.
+func (cli *Client) handleSUBACK(p packet.Packet) error {
+	// Lock for update.
+	cli.muConn.Lock()
+	cli.muSess.Lock()
+
+	// Unlock.
+	defer cli.muConn.Unlock()
+	defer cli.muSess.Unlock()
+
+	// Extract the Packet Identifier of the Packet.
+	id := p.(*packet.SUBACK).PacketID
+
+	// Validate the Packet Identifier.
+	if err := cli.validateSendingPacketID(id, packet.TypeSUBSCRIBE); err != nil {
+		return err
+	}
+
+	// Get the subscription requests of the SUBSCRIBE Packet.
+	subreqs := cli.sess.sendingPackets[id].(*packet.SUBSCRIBE).SubReqs
+
+	// Delete the SUBSCRIBE Packet from the Session.
+	delete(cli.sess.sendingPackets, id)
+
+	// Get the Return Codes of the SUBACK Packet.
+	returnCodes := p.(*packet.SUBACK).ReturnCodes
+
+	// Check the lengths of the Return Codes.
+	if len(returnCodes) != len(subreqs) {
+		return ErrInvalidSUBACK
+	}
+
+	// Set the subscriptions to the Network Connection.
+	for i, code := range returnCodes {
+		// Define the granted QoS and failed.
+		var grantQoS byte
+		var failed bool
+
+		if code == packet.SUBACKRetFailure {
+			failed = true
+		} else {
+			grantQoS = code
+		}
+
+		cli.conn.subscriptions[string(subreqs[i].TopicFilter)] = &SubState{
+			ReqQoS:   subreqs[i].QoS,
+			GrantQoS: grantQoS,
+			Acked:    true,
+			Failed:   failed,
+		}
+	}
 	return nil
 }
 
@@ -710,9 +808,9 @@ func (cli *Client) newPUBLISHPacket(opts *PublishOptions) (packet.Packet, error)
 	p, err := packet.NewPUBLISH(&packet.PUBLISHOptions{
 		QoS:       opts.QoS,
 		Retain:    opts.Retain,
-		TopicName: []byte(opts.TopicName),
+		TopicName: opts.TopicName,
 		PacketID:  packetID,
-		Message:   []byte(opts.Message),
+		Message:   opts.Message,
 	})
 	if err != nil {
 		return nil, err

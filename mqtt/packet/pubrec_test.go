@@ -2,18 +2,6 @@ package packet
 
 import "testing"
 
-func Test_pubrec_PacketID(t *testing.T) {
-	want := uint16(1)
-
-	p := pubrec{
-		packetID: want,
-	}
-
-	if got := p.PacketID(); got != want {
-		t.Errorf("got => %d, want => %d", got, want)
-	}
-}
-
 func TestNewPUBRECFromBytes_validatePUBRECBytesErr(t *testing.T) {
 	if _, err := NewPUBRECFromBytes(nil, nil); err != ErrInvalidFixedHeaderLen {
 		invalidError(t, err, ErrInvalidFixedHeaderLen)

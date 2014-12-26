@@ -12,8 +12,6 @@ type session struct {
 	// sendingPackets contains the pairs of the Packet Identifier
 	// and the Packet.
 	sendingPackets map[uint16]packet.Packet
-	// subscriptions contains the subscription information.
-	subscriptions map[string]*subQoS
 }
 
 // newSession creates and returns a Session.
@@ -22,6 +20,5 @@ func newSession(cleanSession bool, clientID []byte) *session {
 		cleanSession:   cleanSession,
 		clientID:       clientID,
 		sendingPackets: make(map[uint16]packet.Packet),
-		subscriptions:  make(map[string]*subQoS),
 	}
 }

@@ -38,6 +38,7 @@ type PUBLISHOptions struct {
 	Message []byte
 }
 
+// validate validates the options.
 func (opts *PUBLISHOptions) validate() error {
 	// Check the QoS.
 	if !mqtt.ValidQoS(opts.QoS) {

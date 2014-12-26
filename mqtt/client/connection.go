@@ -40,6 +40,9 @@ type connection struct {
 	// handle the signal to notify the arrival of
 	// the PINGRESP Packet.
 	pingresps []chan struct{}
+
+	// subscriptions contains the subscription information.
+	subscriptions map[string]*SubState
 }
 
 // newConnection connects to the address on the named network,
@@ -53,12 +56,13 @@ func newConnection(network, address string) (*connection, error) {
 
 	// Create a Network Connection.
 	c := &connection{
-		Conn:    conn,
-		r:       bufio.NewReader(conn),
-		w:       bufio.NewWriter(conn),
-		connack: make(chan struct{}, 1),
-		send:    make(chan packet.Packet, sendBufSize),
-		sendEnd: make(chan struct{}, 1),
+		Conn:          conn,
+		r:             bufio.NewReader(conn),
+		w:             bufio.NewWriter(conn),
+		connack:       make(chan struct{}, 1),
+		send:          make(chan packet.Packet, sendBufSize),
+		sendEnd:       make(chan struct{}, 1),
+		subscriptions: make(map[string]*SubState),
 	}
 
 	// Return the Network Connection.

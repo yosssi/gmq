@@ -6,16 +6,11 @@ const lenPUBACKFixedHeader = 2
 // Length of the variable header of the PUBACK Packet
 const lenPUBACKVariableHeader = 2
 
-// puback represents a PUBACK Packet.
-type puback struct {
+// PUBACK represents a PUBACK Packet.
+type PUBACK struct {
 	base
-	// packetID is the Packet Identifier of the variable header.
-	packetID uint16
-}
-
-// PacketID returns the Packet Identifier of the Packet.
-func (p *puback) PacketID() uint16 {
-	return p.packetID
+	// PacketID is the Packet Identifier of the variable header.
+	PacketID uint16
 }
 
 // NewPUBACKFromBytes creates a PUBACK Packet
@@ -32,8 +27,8 @@ func NewPUBACKFromBytes(fixedHeader FixedHeader, variableHeader []byte) (Packet,
 	packetID, _ := decodeUint16(variableHeader)
 
 	// Create a PUBACK Packet.
-	p := &puback{
-		packetID: packetID,
+	p := &PUBACK{
+		PacketID: packetID,
 	}
 
 	// Set the fixed header to the Packet.

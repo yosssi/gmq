@@ -1,14 +1,14 @@
 package packet
 
-// disconnect represents a DISCONNECT Packet.
-type disconnect struct {
+// DISCONNECT represents a DISCONNECT Packet.
+type DISCONNECT struct {
 	base
 }
 
 // NewDISCONNECT creates and returns a DISCONNECT Packet.
 func NewDISCONNECT() Packet {
 	// Create a DISCONNECT Packet.
-	p := &disconnect{}
+	p := &DISCONNECT{}
 
 	// Set the fixed header to the Packet.
 	p.fixedHeader = []byte{TypeDISCONNECT << 4, 0x00}

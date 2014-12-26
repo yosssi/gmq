@@ -3,8 +3,8 @@ package packet
 // Length of the fixed header of the PINGRESP Packet
 const lenPINGRESPFixedHeader = 2
 
-// pingresp represents a PINGRESP Packet.
-type pingresp struct {
+// PINGRESP represents a PINGRESP Packet.
+type PINGRESP struct {
 	base
 }
 
@@ -17,7 +17,7 @@ func NewPINGRESPFromBytes(fixedHeader FixedHeader, remaining []byte) (Packet, er
 	}
 
 	// Create a PINGRESP Packet.
-	p := &pingresp{}
+	p := &PINGRESP{}
 
 	// Set the fixed header to the Packet.
 	p.fixedHeader = fixedHeader

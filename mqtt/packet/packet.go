@@ -13,8 +13,6 @@ type Packet interface {
 	io.WriterTo
 	// Type returns the MQTT Control Packet type of the Packet.
 	Type() (byte, error)
-	// PacketID returns the Packet Identifier of the Packet.
-	PacketID() uint16
 }
 
 // NewFromBytes creates a Packet from the byte data and returns it.
@@ -35,6 +33,8 @@ func NewFromBytes(fixedHeader FixedHeader, remaining []byte) (Packet, error) {
 		return NewPUBRECFromBytes(fixedHeader, remaining)
 	case TypePUBCOMP:
 		return NewPUBCOMPFromBytes(fixedHeader, remaining)
+	case TypeSUBACK:
+		return NewSUBACKFromBytes(fixedHeader, remaining)
 	case TypePINGRESP:
 		return NewPINGRESPFromBytes(fixedHeader, remaining)
 	default:

@@ -28,8 +28,8 @@ var (
 	ErrInvalidConnectReturnCode = errors.New("invalid Connect Return code")
 )
 
-// connack represents a CONNACK Packet.
-type connack struct {
+// CONNACK represents a CONNACK Packet.
+type CONNACK struct {
 	base
 	// sessionPresent is the Session Present of the variable header.
 	sessionPresent bool
@@ -46,7 +46,7 @@ func NewCONNACKFromBytes(fixedHeader FixedHeader, variableHeader []byte) (Packet
 	}
 
 	// Create a CONNACK Packet.
-	p := &connack{
+	p := &CONNACK{
 		sessionPresent:    variableHeader[0]<<7 == 0x80,
 		connectReturnCode: variableHeader[1],
 	}

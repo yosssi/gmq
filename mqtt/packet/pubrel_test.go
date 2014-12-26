@@ -2,21 +2,9 @@ package packet
 
 import "testing"
 
-func Test_pubrel_PacketID(t *testing.T) {
-	want := uint16(1)
-
-	p := &pubrel{
-		packetID: want,
-	}
-
-	if got := p.PacketID(); got != want {
-		t.Errorf("got => %d, want => %d", got, want)
-	}
-}
-
-func Test_pubrel_setFixedHeader(t *testing.T) {
-	p := &pubrel{
-		packetID: 1,
+func TestPUBREL_setFixedHeader(t *testing.T) {
+	p := &PUBREL{
+		PacketID: 1,
 	}
 
 	p.variableHeader = []byte{0x00, 0x01}
@@ -33,9 +21,9 @@ func Test_pubrel_setFixedHeader(t *testing.T) {
 	}
 }
 
-func Test_pubrel_setVariableHeader(t *testing.T) {
-	p := &pubrel{
-		packetID: 65534,
+func TestPUBREL_setVariableHeader(t *testing.T) {
+	p := &PUBREL{
+		PacketID: 65534,
 	}
 
 	p.setVariableHeader()

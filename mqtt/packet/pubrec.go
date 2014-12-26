@@ -6,16 +6,11 @@ const lenPUBRECFixedHeader = 2
 // Length of the variable header of the PUBREC Packet
 const lenPUBRECVariableHeader = 2
 
-// pubrec represents a PUBREC Packet.
-type pubrec struct {
+// PUBREC represents a PUBREC Packet.
+type PUBREC struct {
 	base
-	// packetID is the Packet Identifier of the variable header.
-	packetID uint16
-}
-
-// PacketID returns the Packet Identifier of the Packet.
-func (p *pubrec) PacketID() uint16 {
-	return p.packetID
+	// PacketID is the Packet Identifier of the variable header.
+	PacketID uint16
 }
 
 // NewPUBRECFromBytes creates a PUBREC Packet
@@ -32,8 +27,8 @@ func NewPUBRECFromBytes(fixedHeader FixedHeader, variableHeader []byte) (Packet,
 	packetID, _ := decodeUint16(variableHeader)
 
 	// Create a PUBREC Packet.
-	p := &pubrec{
-		packetID: packetID,
+	p := &PUBREC{
+		PacketID: packetID,
 	}
 
 	// Set the fixed header to the Packet.

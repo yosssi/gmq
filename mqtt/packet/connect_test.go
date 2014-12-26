@@ -6,8 +6,8 @@ import (
 	"github.com/yosssi/gmq/mqtt"
 )
 
-func Test_connect_setFixedHeader(t *testing.T) {
-	p := &connect{}
+func TestCONNECT_setFixedHeader(t *testing.T) {
+	p := &CONNECT{}
 
 	p.setFixedHeader()
 
@@ -18,8 +18,8 @@ func Test_connect_setFixedHeader(t *testing.T) {
 	}
 }
 
-func Test_connect_setVariableHeader(t *testing.T) {
-	p := &connect{}
+func TestCONNECT_setVariableHeader(t *testing.T) {
+	p := &CONNECT{}
 
 	p.setVariableHeader()
 
@@ -38,8 +38,8 @@ func Test_connect_setVariableHeader(t *testing.T) {
 	}
 }
 
-func Test_connect_setPayload(t *testing.T) {
-	p := &connect{
+func TestCONNECT_setPayload(t *testing.T) {
+	p := &CONNECT{
 		clientID:    []byte("clientID"),
 		willTopic:   []byte("willTopic"),
 		willMessage: []byte("willMessage"),
@@ -64,8 +64,8 @@ func Test_connect_setPayload(t *testing.T) {
 	}
 }
 
-func Test_connect_connectFlags(t *testing.T) {
-	p := &connect{
+func TestCONNECT_connectFlags(t *testing.T) {
+	p := &CONNECT{
 		userName:     []byte("userName"),
 		password:     []byte("password"),
 		willRetain:   true,
@@ -82,15 +82,15 @@ func Test_connect_connectFlags(t *testing.T) {
 	}
 }
 
-func Test_connect_will(t *testing.T) {
+func TestCONNECT_will(t *testing.T) {
 	testCases := []struct {
-		in  *connect
+		in  *CONNECT
 		out bool
 	}{
-		{in: &connect{}, out: false},
-		{in: &connect{willTopic: []byte{0x00}}, out: false},
-		{in: &connect{willMessage: []byte{0x00}}, out: false},
-		{in: &connect{willTopic: []byte{0x00}, willMessage: []byte{0x00}}, out: true},
+		{in: &CONNECT{}, out: false},
+		{in: &CONNECT{willTopic: []byte{0x00}}, out: false},
+		{in: &CONNECT{willMessage: []byte{0x00}}, out: false},
+		{in: &CONNECT{willTopic: []byte{0x00}, willMessage: []byte{0x00}}, out: true},
 	}
 
 	for _, tc := range testCases {
