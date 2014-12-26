@@ -13,6 +13,43 @@ type PUBCOMP struct {
 	PacketID uint16
 }
 
+// setFixedHeader sets the fixed header to the Packet.
+func (p *PUBCOMP) setFixedHeader() {
+	// Append the first byte to the fixed header.
+	p.fixedHeader = append(p.fixedHeader, TypePUBCOMP<<4)
+
+	// Append the Remaining Length to the fixed header.
+	p.appendRemainingLength()
+}
+
+// setVariableHeader sets the variable header to the Packet.
+func (p *PUBCOMP) setVariableHeader() {
+	// Append the Packet Identifier to the variable header.
+	p.variableHeader = append(p.variableHeader, encodeUint16(p.PacketID)...)
+}
+
+// NewPUBCOMP creates and returns a PUBCOMP Packet.
+func NewPUBCOMP(opts *PUBCOMPOptions) Packet {
+	// Initialize the options.
+	if opts == nil {
+		opts = &PUBCOMPOptions{}
+	}
+
+	// Create a PUBCOMP Packet.
+	p := &PUBCOMP{
+		PacketID: opts.PacketID,
+	}
+
+	// Set the variable header to the Packet.
+	p.setVariableHeader()
+
+	// Set the Fixed header to the Packet.
+	p.setFixedHeader()
+
+	// Return the Packet.
+	return p
+}
+
 // NewPUBCOMPFromBytes creates a PUBCOMP Packet
 // from the byte data and returns it.
 func NewPUBCOMPFromBytes(fixedHeader FixedHeader, variableHeader []byte) (Packet, error) {

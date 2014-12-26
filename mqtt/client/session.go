@@ -12,13 +12,17 @@ type session struct {
 	// sendingPackets contains the pairs of the Packet Identifier
 	// and the Packet.
 	sendingPackets map[uint16]packet.Packet
+	// receivingPackets contains the pairs of the Packet Identifier
+	// and the Packet.
+	receivingPackets map[uint16]packet.Packet
 }
 
 // newSession creates and returns a Session.
 func newSession(cleanSession bool, clientID []byte) *session {
 	return &session{
-		cleanSession:   cleanSession,
-		clientID:       clientID,
-		sendingPackets: make(map[uint16]packet.Packet),
+		cleanSession:     cleanSession,
+		clientID:         clientID,
+		sendingPackets:   make(map[uint16]packet.Packet),
+		receivingPackets: make(map[uint16]packet.Packet),
 	}
 }

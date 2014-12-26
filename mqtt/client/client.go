@@ -511,6 +511,8 @@ func (cli *Client) handlePacket(p packet.Packet) error {
 		return cli.handlePUBACK(p)
 	case packet.TypePUBREC:
 		return cli.handlePUBREC(p)
+	case packet.TypePUBREL:
+		return cli.handlePUBREL(p)
 	case packet.TypePUBCOMP:
 		return cli.handlePUBCOMP(p)
 	case packet.TypeSUBACK:
@@ -519,8 +521,6 @@ func (cli *Client) handlePacket(p packet.Packet) error {
 		return cli.handleUNSUBACK(p)
 	case packet.TypePINGRESP:
 		return cli.handlePINGRESP()
-	case
-		packet.TypePUBREL:
 	default:
 		return packet.ErrInvalidPacketType
 	}
@@ -541,10 +541,52 @@ func (cli *Client) handleCONNACK() error {
 
 // handlePUBLISH handles the PUBLISH Packet.
 func (cli *Client) handlePUBLISH(p packet.Packet) error {
-	// TODO
-	fmt.Println("PUBLISH Packet")
-	fmt.Printf("%+v\n", p)
-	return nil
+	// Get the PUBLISH Packet.
+	publish := p.(*packet.PUBLISH)
+
+	switch publish.QoS {
+	case mqtt.QoS0:
+		// TODO: Handle
+		go fmt.Println("Handle!!!", publish)
+		return nil
+	case mqtt.QoS1:
+		// TODO: Handle
+		go fmt.Println("Handle!!!", publish)
+
+		// Create a PUBACK Packet.
+		puback := packet.NewPUBACK(&packet.PUBACKOptions{
+			PacketID: publish.PacketID,
+		})
+
+		// Send the Packet to the Server.
+		cli.conn.send <- puback
+
+		return nil
+	default:
+		// Lock for update.
+		cli.muSess.Lock()
+
+		// Unlock.
+		defer cli.muSess.Unlock()
+
+		// Validate the Packet Identifier.
+		if _, exist := cli.sess.receivingPackets[publish.PacketID]; exist {
+			return ErrInvalidPacketID
+		}
+
+		// Set the Packet to the Session.
+		cli.sess.receivingPackets[publish.PacketID] = p
+
+		// Create a PUBREC Packet.
+		pubrec := packet.NewPUBREC(&packet.PUBRECOptions{
+			PacketID: publish.PacketID,
+		})
+
+		// Send the Packet to the Server.
+		cli.conn.send <- pubrec
+
+		return nil
+	}
 }
 
 // handlePUBACK handles the PUBACK Packet.
@@ -559,7 +601,7 @@ func (cli *Client) handlePUBACK(p packet.Packet) error {
 	id := p.(*packet.PUBACK).PacketID
 
 	// Validate the Packet Identifier.
-	if err := cli.validateSendingPacketID(id, packet.TypePUBLISH); err != nil {
+	if err := cli.validatePacketID(cli.sess.sendingPackets, id, packet.TypePUBLISH); err != nil {
 		return err
 	}
 
@@ -581,7 +623,7 @@ func (cli *Client) handlePUBREC(p packet.Packet) error {
 	id := p.(*packet.PUBREC).PacketID
 
 	// Validate the Packet Identifier.
-	if err := cli.validateSendingPacketID(id, packet.TypePUBLISH); err != nil {
+	if err := cli.validatePacketID(cli.sess.sendingPackets, id, packet.TypePUBLISH); err != nil {
 		return err
 	}
 
@@ -599,6 +641,42 @@ func (cli *Client) handlePUBREC(p packet.Packet) error {
 	return nil
 }
 
+// handlePUBREL handles the PUBREL Packet.
+func (cli *Client) handlePUBREL(p packet.Packet) error {
+	// Lock for update.
+	cli.muSess.Lock()
+
+	// Unlock.
+	defer cli.muSess.Unlock()
+
+	// Extract the Packet Identifier of the Packet.
+	id := p.(*packet.PUBREL).PacketID
+
+	// Validate the Packet Identifier.
+	if err := cli.validatePacketID(cli.sess.receivingPackets, id, packet.TypePUBLISH); err != nil {
+		return err
+	}
+
+	// Get the Packet from the Session.
+	publish := cli.sess.receivingPackets[id]
+
+	// TODO: Handle
+	go fmt.Println("Handle!!!", publish.(*packet.PUBLISH))
+
+	// Delete the Packet from the Session
+	delete(cli.sess.receivingPackets, id)
+
+	// Create a PUBCOMP Packet.
+	pubcomp := packet.NewPUBCOMP(&packet.PUBCOMPOptions{
+		PacketID: id,
+	})
+
+	// Send the Packet to the Server.
+	cli.conn.send <- pubcomp
+
+	return nil
+}
+
 // handlePUBCOMP handles the PUBCOMP Packet.
 func (cli *Client) handlePUBCOMP(p packet.Packet) error {
 	// Lock for update.
@@ -611,7 +689,7 @@ func (cli *Client) handlePUBCOMP(p packet.Packet) error {
 	id := p.(*packet.PUBCOMP).PacketID
 
 	// Validate the Packet Identifier.
-	if err := cli.validateSendingPacketID(id, packet.TypePUBREL); err != nil {
+	if err := cli.validatePacketID(cli.sess.sendingPackets, id, packet.TypePUBREL); err != nil {
 		return err
 	}
 
@@ -635,7 +713,7 @@ func (cli *Client) handleSUBACK(p packet.Packet) error {
 	id := p.(*packet.SUBACK).PacketID
 
 	// Validate the Packet Identifier.
-	if err := cli.validateSendingPacketID(id, packet.TypeSUBSCRIBE); err != nil {
+	if err := cli.validatePacketID(cli.sess.sendingPackets, id, packet.TypeSUBSCRIBE); err != nil {
 		return err
 	}
 
@@ -689,7 +767,7 @@ func (cli *Client) handleUNSUBACK(p packet.Packet) error {
 	id := p.(*packet.UNSUBACK).PacketID
 
 	// Validate the Packet Identifier.
-	if err := cli.validateSendingPacketID(id, packet.TypeUNSUBSCRIBE); err != nil {
+	if err := cli.validatePacketID(cli.sess.sendingPackets, id, packet.TypeUNSUBSCRIBE); err != nil {
 		return err
 	}
 
@@ -923,9 +1001,9 @@ func (cli *Client) newPUBLISHPacket(opts *PublishOptions) (packet.Packet, error)
 // the Packet Identifier and the MQTT Control Packet type
 // specified by the parameters exists in the Session's
 // sendingPackets.
-func (cli *Client) validateSendingPacketID(id uint16, ptype byte) error {
-	// Extract the Packet from the Session.
-	p, exist := cli.sess.sendingPackets[id]
+func (cli *Client) validatePacketID(packets map[uint16]packet.Packet, id uint16, ptype byte) error {
+	// Extract the Packet.
+	p, exist := packets[id]
 
 	if !exist {
 		// Return an error if there is no Packet which has the Packet Identifier

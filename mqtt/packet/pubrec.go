@@ -13,6 +13,43 @@ type PUBREC struct {
 	PacketID uint16
 }
 
+// setFixedHeader sets the fixed header to the Packet.
+func (p *PUBREC) setFixedHeader() {
+	// Append the first byte to the fixed header.
+	p.fixedHeader = append(p.fixedHeader, TypePUBREC<<4)
+
+	// Append the Remaining Length to the fixed header.
+	p.appendRemainingLength()
+}
+
+// setVariableHeader sets the variable header to the Packet.
+func (p *PUBREC) setVariableHeader() {
+	// Append the Packet Identifier to the variable header.
+	p.variableHeader = append(p.variableHeader, encodeUint16(p.PacketID)...)
+}
+
+// NewPUBREC creates and returns a PUBACK Packet.
+func NewPUBREC(opts *PUBRECOptions) Packet {
+	// Initialize the options.
+	if opts == nil {
+		opts = &PUBRECOptions{}
+	}
+
+	// Create a PUBREC Packet.
+	p := &PUBREC{
+		PacketID: opts.PacketID,
+	}
+
+	// Set the variable header to the Packet.
+	p.setVariableHeader()
+
+	// Set the Fixed header to the Packet.
+	p.setFixedHeader()
+
+	// Return the Packet.
+	return p
+}
+
 // NewPUBRECFromBytes creates a PUBREC Packet
 // from the byte data and returns it.
 func NewPUBRECFromBytes(fixedHeader FixedHeader, variableHeader []byte) (Packet, error) {

@@ -1,10 +1,6 @@
 package packet
 
-import (
-	"fmt"
-
-	"github.com/yosssi/gmq/mqtt"
-)
+import "github.com/yosssi/gmq/mqtt"
 
 // Maximum Remaining Length
 const maxRemainingLength = 268435455
@@ -21,15 +17,15 @@ type PUBLISH struct {
 	// dup is the DUP flag of the fixed header.
 	dup bool
 	// qos is the QoS of the fixed header.
-	qos byte
+	QoS byte
 	// retain is the Retain of the fixed header.
 	retain bool
 	// topicName is the Topic Name of the varible header.
-	topicName []byte
+	TopicName []byte
 	// packetID is the Packet Identifier of the variable header.
 	PacketID uint16
 	// message is the Application Message of the payload.
-	message []byte
+	Message []byte
 }
 
 // setFixedHeader sets the fixed header to the Packet.
@@ -43,7 +39,7 @@ func (p *PUBLISH) setFixedHeader() {
 	}
 
 	// Set the value of the Will QoS to the Bit 2 and 1.
-	b |= p.qos << 1
+	b |= p.QoS << 1
 
 	// Set 1 to the Bit 0 if the Retain is true.
 	if p.retain {
@@ -60,9 +56,9 @@ func (p *PUBLISH) setFixedHeader() {
 // setVariableHeader sets the variable header to the Packet.
 func (p *PUBLISH) setVariableHeader() {
 	// Append the Topic Name to the variable header.
-	p.variableHeader = appendLenStr(p.variableHeader, p.topicName)
+	p.variableHeader = appendLenStr(p.variableHeader, p.TopicName)
 
-	if p.qos != mqtt.QoS0 {
+	if p.QoS != mqtt.QoS0 {
 		// Append the Packet Identifier to the variable header.
 		p.variableHeader = append(p.variableHeader, encodeUint16(p.PacketID)...)
 	}
@@ -70,7 +66,7 @@ func (p *PUBLISH) setVariableHeader() {
 
 // setPayload sets the payload to the Packet.
 func (p *PUBLISH) setPayload() {
-	p.payload = p.message
+	p.payload = p.Message
 }
 
 // NewPUBLISH creates and returns a PUBLISH Packet.
@@ -88,11 +84,11 @@ func NewPUBLISH(opts *PUBLISHOptions) (Packet, error) {
 	// Create a PUBLISH Packet.
 	p := &PUBLISH{
 		dup:       opts.DUP,
-		qos:       opts.QoS,
+		QoS:       opts.QoS,
 		retain:    opts.Retain,
-		topicName: opts.TopicName,
+		TopicName: opts.TopicName,
 		PacketID:  opts.PacketID,
-		message:   opts.Message,
+		Message:   opts.Message,
 	}
 
 	// Set the variable header to the Packet.
@@ -111,7 +107,6 @@ func NewPUBLISH(opts *PUBLISHOptions) (Packet, error) {
 // NewPUBLISHFromBytes creates the PUBLISH Packet
 // from the byte data and returns it.
 func NewPUBLISHFromBytes(fixedHeader FixedHeader, remaining []byte) (Packet, error) {
-	fmt.Println(fixedHeader, remaining)
 	// Validate the byte data.
 	if err := validatePUBLISHBytes(fixedHeader, remaining); err != nil {
 		return nil, err
@@ -123,7 +118,7 @@ func NewPUBLISHFromBytes(fixedHeader FixedHeader, remaining []byte) (Packet, err
 	// Create a PUBLISH Packet.
 	p := &PUBLISH{
 		dup:    b&0x08 == 0x08,
-		qos:    b & 0x06 >> 1,
+		QoS:    b & 0x06 >> 1,
 		retain: b&0x01 == 0x01,
 	}
 
@@ -136,7 +131,7 @@ func NewPUBLISHFromBytes(fixedHeader FixedHeader, remaining []byte) (Packet, err
 	// Calculate the length of the variable header.
 	var lenVariableHeader int
 
-	if p.qos == mqtt.QoS0 {
+	if p.QoS == mqtt.QoS0 {
 		lenVariableHeader = 2 + int(lenTopicName)
 	} else {
 		lenVariableHeader = 2 + int(lenTopicName) + 2
@@ -149,12 +144,12 @@ func NewPUBLISHFromBytes(fixedHeader FixedHeader, remaining []byte) (Packet, err
 	p.payload = remaining[lenVariableHeader:]
 
 	// Set the Topic Name to the Packet.
-	p.topicName = remaining[2 : 2+lenTopicName]
+	p.TopicName = remaining[2 : 2+lenTopicName]
 
 	// Extract the Packet Identifier.
 	var packetID uint16
 
-	if p.qos != mqtt.QoS0 {
+	if p.QoS != mqtt.QoS0 {
 		packetID, _ = decodeUint16(remaining[2+lenTopicName : 2+lenTopicName+2])
 	}
 
@@ -162,7 +157,7 @@ func NewPUBLISHFromBytes(fixedHeader FixedHeader, remaining []byte) (Packet, err
 	p.PacketID = packetID
 
 	// Set the Application Message to the Packet.
-	p.message = p.payload
+	p.Message = p.payload
 
 	// Return the Packet.
 	return p, nil

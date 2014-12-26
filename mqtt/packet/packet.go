@@ -33,6 +33,8 @@ func NewFromBytes(fixedHeader FixedHeader, remaining []byte) (Packet, error) {
 		return NewPUBACKFromBytes(fixedHeader, remaining)
 	case TypePUBREC:
 		return NewPUBRECFromBytes(fixedHeader, remaining)
+	case TypePUBREL:
+		return NewPUBRELFromBytes(fixedHeader, remaining)
 	case TypePUBCOMP:
 		return NewPUBCOMPFromBytes(fixedHeader, remaining)
 	case TypeSUBACK:

@@ -13,6 +13,43 @@ type PUBACK struct {
 	PacketID uint16
 }
 
+// setFixedHeader sets the fixed header to the Packet.
+func (p *PUBACK) setFixedHeader() {
+	// Append the first byte to the fixed header.
+	p.fixedHeader = append(p.fixedHeader, TypePUBACK<<4)
+
+	// Append the Remaining Length to the fixed header.
+	p.appendRemainingLength()
+}
+
+// setVariableHeader sets the variable header to the Packet.
+func (p *PUBACK) setVariableHeader() {
+	// Append the Packet Identifier to the variable header.
+	p.variableHeader = append(p.variableHeader, encodeUint16(p.PacketID)...)
+}
+
+// NewPUBACK creates and returns a PUBACK Packet.
+func NewPUBACK(opts *PUBACKOptions) Packet {
+	// Initialize the options.
+	if opts == nil {
+		opts = &PUBACKOptions{}
+	}
+
+	// Create a PUBACK Packet.
+	p := &PUBACK{
+		PacketID: opts.PacketID,
+	}
+
+	// Set the variable header to the Packet.
+	p.setVariableHeader()
+
+	// Set the Fixed header to the Packet.
+	p.setFixedHeader()
+
+	// Return the Packet.
+	return p
+}
+
 // NewPUBACKFromBytes creates a PUBACK Packet
 // from the byte data and returns it.
 func NewPUBACKFromBytes(fixedHeader FixedHeader, variableHeader []byte) (Packet, error) {
