@@ -27,8 +27,8 @@ func TestPUBLISH_setFixedHeader(t *testing.T) {
 
 func TestPUBLISH_setVariableHeader(t *testing.T) {
 	p := &PUBLISH{
-		qos:       mqtt.QoS1,
-		topicName: []byte("topicName"),
+		QoS:       mqtt.QoS1,
+		TopicName: []byte("topicName"),
 		PacketID:  1,
 	}
 
@@ -51,13 +51,13 @@ func TestPUBLISH_setVariableHeader(t *testing.T) {
 
 func TestPUBLISH_setPayload(t *testing.T) {
 	p := &PUBLISH{
-		message: []byte{0x00, 0x01},
+		Message: []byte{0x00, 0x01},
 	}
 
 	p.setPayload()
 
-	if len(p.payload) != len(p.message) || p.payload[0] != p.message[0] || p.payload[1] != p.message[1] {
-		t.Errorf("p.payload => %v, want => %v", p.payload, p.message)
+	if len(p.payload) != len(p.Message) || p.payload[0] != p.Message[0] || p.payload[1] != p.Message[1] {
+		t.Errorf("p.payload => %v, want => %v", p.payload, p.Message)
 	}
 }
 

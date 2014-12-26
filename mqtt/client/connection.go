@@ -41,8 +41,12 @@ type connection struct {
 	// the PINGRESP Packet.
 	pingresps []chan struct{}
 
-	// subscriptions contains the subscription information.
-	subscriptions map[string]*SubState
+	// unackSubs contains the subscription information
+	// which are not acknowledged by the Server.
+	unackSubs map[string]MessageHandler
+	// ackedSubs contains the subscription information
+	// which are acknowledged by the Server.
+	ackedSubs map[string]MessageHandler
 }
 
 // newConnection connects to the address on the named network,
@@ -56,13 +60,14 @@ func newConnection(network, address string) (*connection, error) {
 
 	// Create a Network Connection.
 	c := &connection{
-		Conn:          conn,
-		r:             bufio.NewReader(conn),
-		w:             bufio.NewWriter(conn),
-		connack:       make(chan struct{}, 1),
-		send:          make(chan packet.Packet, sendBufSize),
-		sendEnd:       make(chan struct{}, 1),
-		subscriptions: make(map[string]*SubState),
+		Conn:      conn,
+		r:         bufio.NewReader(conn),
+		w:         bufio.NewWriter(conn),
+		connack:   make(chan struct{}, 1),
+		send:      make(chan packet.Packet, sendBufSize),
+		sendEnd:   make(chan struct{}, 1),
+		unackSubs: make(map[string]MessageHandler),
+		ackedSubs: make(map[string]MessageHandler),
 	}
 
 	// Return the Network Connection.

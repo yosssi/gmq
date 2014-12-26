@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 	"sync"
 	"time"
 
@@ -263,10 +264,20 @@ func (cli *Client) Subscribe(opts *SubscribeOptions) error {
 		return err
 	}
 
+	// Create subscription requests for the SUBSCRIBE Packet.
+	var subReqs []*packet.SubReq
+
+	for _, s := range opts.SubReqs {
+		subReqs = append(subReqs, &packet.SubReq{
+			TopicFilter: s.TopicFilter,
+			QoS:         s.QoS,
+		})
+	}
+
 	// Create a SUBSCRIBE Packet.
 	p, err := packet.NewSUBSCRIBE(&packet.SUBSCRIBEOptions{
 		PacketID: packetID,
-		SubReqs:  opts.SubReqs,
+		SubReqs:  subReqs,
 	})
 	if err != nil {
 		return err
@@ -275,11 +286,10 @@ func (cli *Client) Subscribe(opts *SubscribeOptions) error {
 	// Set the Packet to the Session.
 	cli.sess.sendingPackets[packetID] = p
 
-	// Set the subscriptions to the Network Connection.
+	// Set the subscription information to
+	// the Network Connection.
 	for _, s := range opts.SubReqs {
-		cli.conn.subscriptions[string(s.TopicFilter)] = &SubState{
-			ReqQoS: s.QoS,
-		}
+		cli.conn.unackSubs[string(s.TopicFilter)] = s.Handler
 	}
 
 	// Send the Packet to the Server.
@@ -546,12 +556,25 @@ func (cli *Client) handlePUBLISH(p packet.Packet) error {
 
 	switch publish.QoS {
 	case mqtt.QoS0:
-		// TODO: Handle
-		go fmt.Println("Handle!!!", publish)
+		// Lock for reading.
+		cli.muConn.RLock()
+
+		// Unlock.
+		defer cli.muConn.RUnlock()
+
+		// Handle the Application Message.
+		cli.handleMessage(publish.TopicName, publish.Message)
+
 		return nil
 	case mqtt.QoS1:
-		// TODO: Handle
-		go fmt.Println("Handle!!!", publish)
+		// Lock for reading.
+		cli.muConn.RLock()
+
+		// Unlock.
+		defer cli.muConn.RUnlock()
+
+		// Handle the Application Message.
+		cli.handleMessage(publish.TopicName, publish.Message)
 
 		// Create a PUBACK Packet.
 		puback := packet.NewPUBACK(&packet.PUBACKOptions{
@@ -658,10 +681,16 @@ func (cli *Client) handlePUBREL(p packet.Packet) error {
 	}
 
 	// Get the Packet from the Session.
-	publish := cli.sess.receivingPackets[id]
+	publish := cli.sess.receivingPackets[id].(*packet.PUBLISH)
 
-	// TODO: Handle
-	go fmt.Println("Handle!!!", publish.(*packet.PUBLISH))
+	// Lock for reading.
+	cli.muConn.RLock()
+
+	// Handle the Application Message.
+	cli.handleMessage(publish.TopicName, publish.Message)
+
+	// Unlock.
+	cli.muConn.RUnlock()
 
 	// Delete the Packet from the Session
 	delete(cli.sess.receivingPackets, id)
@@ -733,23 +762,20 @@ func (cli *Client) handleSUBACK(p packet.Packet) error {
 
 	// Set the subscriptions to the Network Connection.
 	for i, code := range returnCodes {
-		// Define the granted QoS and failed.
-		var grantQoS byte
-		var failed bool
-
+		// Skip if the Return Code is failure.
 		if code == packet.SUBACKRetFailure {
-			failed = true
-		} else {
-			grantQoS = code
+			continue
 		}
 
-		cli.conn.subscriptions[string(subreqs[i].TopicFilter)] = &SubState{
-			ReqQoS:   subreqs[i].QoS,
-			GrantQoS: grantQoS,
-			Acked:    true,
-			Failed:   failed,
-		}
+		// Get the Topic Filter.
+		topicFilter := string(subreqs[i].TopicFilter)
+
+		// Move the subscription information from
+		// unackSubs to ackedSubs.
+		cli.conn.ackedSubs[topicFilter] = cli.conn.unackSubs[topicFilter]
+		delete(cli.conn.unackSubs, topicFilter)
 	}
+
 	return nil
 }
 
@@ -779,7 +805,7 @@ func (cli *Client) handleUNSUBACK(p packet.Packet) error {
 
 	// Delete the Topic Filters from the Network Connection.
 	for _, topicFilter := range topicFilters {
-		delete(cli.conn.subscriptions, string(topicFilter))
+		delete(cli.conn.ackedSubs, string(topicFilter))
 	}
 
 	return nil
@@ -1026,6 +1052,21 @@ func (cli *Client) validatePacketID(packets map[uint16]packet.Packet, id uint16,
 	return nil
 }
 
+// handleMessage handles the Application Message.
+func (cli *Client) handleMessage(topicName, message []byte) {
+	// Get the string of the Topic Name.
+	topicNameStr := string(topicName)
+
+	for topicFilter, handler := range cli.conn.ackedSubs {
+		if handler == nil || !match(topicNameStr, topicFilter) {
+			continue
+		}
+
+		// Execute the handler.
+		go handler(topicName, message)
+	}
+}
+
 // New creates and returns a Client.
 func New(opts *Options) *Client {
 	// Initialize the options.
@@ -1064,4 +1105,35 @@ func New(opts *Options) *Client {
 
 	// Return the Client.
 	return cli
+}
+
+// match checks if the Topic Name matches the Topic Filter.
+func match(topicName, topicFilter string) bool {
+	// Tokenize the Topic Name.
+	nameTokens := strings.Split(topicName, "/")
+	nameTokensLen := len(nameTokens)
+
+	// Tolenize the Topic Filter.
+	filterTokens := strings.Split(topicFilter, "/")
+
+	for i, t := range filterTokens {
+		switch t {
+		case "#":
+			return i != 0 || !strings.HasPrefix(nameTokens[0], "$")
+		case "+":
+			if i == 0 && strings.HasPrefix(nameTokens[0], "$") {
+				return false
+			}
+
+			if nameTokensLen <= i {
+				return false
+			}
+		default:
+			if nameTokensLen <= i || t != nameTokens[i] {
+				return false
+			}
+		}
+	}
+
+	return len(filterTokens) == nameTokensLen
 }
