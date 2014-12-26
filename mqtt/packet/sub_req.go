@@ -6,8 +6,11 @@ import (
 	"github.com/yosssi/gmq/mqtt"
 )
 
-// Error value
-var ErrTopicFilterExceedsMaxStringsLen = errors.New("the length of the Topic Filter exceeds the maximum strings legnth")
+// Error values
+var (
+	ErrNoTopicFilter                   = errors.New("the Topic Filter must be specified")
+	ErrTopicFilterExceedsMaxStringsLen = errors.New("the length of the Topic Filter exceeds the maximum strings legnth")
+)
 
 // SubReq represents subscription request.
 type SubReq struct {
@@ -20,7 +23,13 @@ type SubReq struct {
 // validate validates the subscription request.
 func (s *SubReq) validate() error {
 	// Check the length of the Topic Filter.
-	if len(s.TopicFilter) > maxStringsLen {
+	l := len(s.TopicFilter)
+
+	if l == 0 {
+		return ErrNoTopicFilter
+	}
+
+	if l > maxStringsLen {
 		return ErrTopicFilterExceedsMaxStringsLen
 	}
 

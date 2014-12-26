@@ -3,10 +3,9 @@ package packet
 import "errors"
 
 // Error value
-var ErrInvalidNoSubReq = errors.New("no subscription requests are specified")
+var ErrInvalidNoSubReq = errors.New("subscription request must be specified")
 
-// SUBSCRIBEOptions represents options
-// for a SUBSCRIBE Packet.
+// SUBSCRIBEOptions represents options for a SUBSCRIBE Packet.
 type SUBSCRIBEOptions struct {
 	// PacketID is the Packet Identifier of the variable header.
 	PacketID uint16

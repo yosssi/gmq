@@ -288,6 +288,58 @@ func (cli *Client) Subscribe(opts *SubscribeOptions) error {
 	return nil
 }
 
+// Unsubscribe sends an UNSUBSCRIBE Packet to the Server.
+func (cli *Client) Unsubscribe(opts *UnsubscribeOptions) error {
+	// Lock for reading and updating.
+	cli.muConn.Lock()
+
+	// Unlock.
+	defer cli.muConn.Unlock()
+
+	// Check the Network Connection.
+	if cli.conn == nil {
+		return ErrNotYetConnected
+	}
+
+	// Check the existence of the options.
+	if opts == nil || len(opts.TopicFilters) == 0 {
+		return packet.ErrNoTopicFilter
+	}
+
+	// Define a Packet Identifier.
+	var packetID uint16
+
+	// Define an error.
+	var err error
+
+	// Lock for updating the Session.
+	cli.muSess.Lock()
+
+	defer cli.muSess.Unlock()
+
+	// Generate a Packet Identifer.
+	if packetID, err = cli.generatePacketID(); err != nil {
+		return err
+	}
+
+	// Create an UNSUBSCRIBE Packet.
+	p, err := packet.NewUNSUBSCRIBE(&packet.UNSUBSCRIBEOptions{
+		PacketID:     packetID,
+		TopicFilters: opts.TopicFilters,
+	})
+	if err != nil {
+		return err
+	}
+
+	// Set the Packet to the Session.
+	cli.sess.sendingPackets[packetID] = p
+
+	// Send the Packet to the Server.
+	cli.conn.send <- p
+
+	return nil
+}
+
 // send sends an MQTT Control Packet to the Server.
 func (cli *Client) send(p packet.Packet) error {
 	// Return an error if the Client has not yet connected to the Server.
@@ -461,12 +513,13 @@ func (cli *Client) handlePacket(p packet.Packet) error {
 		return cli.handlePUBCOMP(p)
 	case packet.TypeSUBACK:
 		return cli.handleSUBACK(p)
+	case packet.TypeUNSUBACK:
+		return cli.handleUNSUBACK(p)
 	case packet.TypePINGRESP:
 		return cli.handlePINGRESP()
 	case
 		packet.TypePUBLISH,
-		packet.TypePUBREL,
-		packet.TypeUNSUBACK:
+		packet.TypePUBREL:
 	default:
 		return packet.ErrInvalidPacketType
 	}
@@ -610,6 +663,38 @@ func (cli *Client) handleSUBACK(p packet.Packet) error {
 			Failed:   failed,
 		}
 	}
+	return nil
+}
+
+// handleUNSUBACK handles the UNSUBACK Packet.
+func (cli *Client) handleUNSUBACK(p packet.Packet) error {
+	// Lock for update.
+	cli.muConn.Lock()
+	cli.muSess.Lock()
+
+	// Unlock.
+	defer cli.muConn.Unlock()
+	defer cli.muSess.Unlock()
+
+	// Extract the Packet Identifier of the Packet.
+	id := p.(*packet.UNSUBACK).PacketID
+
+	// Validate the Packet Identifier.
+	if err := cli.validateSendingPacketID(id, packet.TypeUNSUBSCRIBE); err != nil {
+		return err
+	}
+
+	// Get the Topic Filters of the UNSUBSCRIBE Packet.
+	topicFilters := cli.sess.sendingPackets[id].(*packet.UNSUBSCRIBE).TopicFilters
+
+	// Delete the UNSUBSCRIBE Packet from the Session.
+	delete(cli.sess.sendingPackets, id)
+
+	// Delete the Topic Filters from the Network Connection.
+	for _, topicFilter := range topicFilters {
+		delete(cli.conn.subscriptions, string(topicFilter))
+	}
+
 	return nil
 }
 

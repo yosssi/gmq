@@ -1,46 +1,43 @@
 package packet
 
-// SUBSCRIBE represents a SUBSCRIBE Packet.
-type SUBSCRIBE struct {
+// UNSUBSCRIBE represents an UNSUBSCRIBE Packet.
+type UNSUBSCRIBE struct {
 	base
 	// PacketID is the Packet Identifier of the variable header.
 	PacketID uint16
-	// SubReqs is a slice of the subscription requests.
-	SubReqs []*SubReq
+	// TopicFilters represents a slice of the Topic Filters
+	TopicFilters [][]byte
 }
 
 // setFixedHeader sets the fixed header to the Packet.
-func (p *SUBSCRIBE) setFixedHeader() {
+func (p *UNSUBSCRIBE) setFixedHeader() {
 	// Append the first byte to the fixed header.
-	p.fixedHeader = append(p.fixedHeader, TypeSUBSCRIBE<<4|0x02)
+	p.fixedHeader = append(p.fixedHeader, TypeUNSUBSCRIBE<<4|0x02)
 
 	// Append the Remaining Length to the fixed header.
 	p.appendRemainingLength()
 }
 
 // setVariableHeader sets the variable header to the Packet.
-func (p *SUBSCRIBE) setVariableHeader() {
+func (p *UNSUBSCRIBE) setVariableHeader() {
 	// Append the Packet Identifier to the variable header.
 	p.variableHeader = append(p.variableHeader, encodeUint16(p.PacketID)...)
 }
 
 // setPayload sets the payload to the Packet.
-func (p *SUBSCRIBE) setPayload() {
-	// Append each subscription request to the payload.
-	for _, s := range p.SubReqs {
+func (p *UNSUBSCRIBE) setPayload() {
+	// Append each Topic Filter to the payload.
+	for _, tf := range p.TopicFilters {
 		// Append the Topic Filter to the payload.
-		p.payload = appendLenStr(p.payload, s.TopicFilter)
-
-		// Append the QoS to the payload.
-		p.payload = append(p.payload, s.QoS)
+		p.payload = appendLenStr(p.payload, tf)
 	}
 }
 
-// NewSUBSCRIBE creates and returns a SUBSCRIBE Packet.
-func NewSUBSCRIBE(opts *SUBSCRIBEOptions) (Packet, error) {
+// NewUNSUBSCRIBE creates and returns an UNSUBSCRIBE Packet.
+func NewUNSUBSCRIBE(opts *UNSUBSCRIBEOptions) (Packet, error) {
 	// Initialize the options.
 	if opts == nil {
-		opts = &SUBSCRIBEOptions{}
+		opts = &UNSUBSCRIBEOptions{}
 	}
 
 	// Validate the options.
@@ -49,9 +46,9 @@ func NewSUBSCRIBE(opts *SUBSCRIBEOptions) (Packet, error) {
 	}
 
 	// Create a SUBSCRIBE Packet.
-	p := &SUBSCRIBE{
-		PacketID: opts.PacketID,
-		SubReqs:  opts.SubReqs,
+	p := &UNSUBSCRIBE{
+		PacketID:     opts.PacketID,
+		TopicFilters: opts.TopicFilters,
 	}
 
 	// Set the variable header to the Packet.

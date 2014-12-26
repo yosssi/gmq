@@ -1,5 +1,11 @@
 package packet
 
+import (
+	"errors"
+
+	"github.com/yosssi/gmq/mqtt"
+)
+
 // Minimum length of the fixed header of the SUBACK Packet
 const minLenSUBACKFixedHeader = 2
 
@@ -8,6 +14,9 @@ const lenSUBACKVariableHeader = 2
 
 // Return Code Failure
 const SUBACKRetFailure byte = 0x80
+
+// Error value
+var ErrInvalidSUBACKReturnCode = errors.New("invalid SUBACK Return Code")
 
 // SUBACK represents a SUBACK Packet.
 type SUBACK struct {
@@ -82,6 +91,13 @@ func validateSUBACKBytes(fixedHeader FixedHeader, remaining []byte) error {
 	// Check the length of the remaining.
 	if len(remaining) < lenSUBACKVariableHeader+1 {
 		return ErrInvalidRemainingLen
+	}
+
+	// Check each Return Code.
+	for _, b := range remaining[lenSUBACKVariableHeader:] {
+		if !mqtt.ValidQoS(b) && b != SUBACKRetFailure {
+			return ErrInvalidSUBACKReturnCode
+		}
 	}
 
 	return nil
