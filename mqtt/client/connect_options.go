@@ -1,6 +1,9 @@
 package client
 
-import "time"
+import (
+	"crypto/tls"
+	"time"
+)
 
 // ConnectOptions represents options for the Connect method
 // of the Client.
@@ -9,6 +12,8 @@ type ConnectOptions struct {
 	Network string
 	// Address is the address which the Client connects to.
 	Address string
+	// TLSConfig is the configuration for the TLS connection.
+	TLSConfig *tls.Config
 	// CONNACKTimeout is timeout in seconds for the Client
 	// to wait for receiving the CONNACK Packet after sending
 	// the CONNECT Packet.
