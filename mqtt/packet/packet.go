@@ -27,6 +27,8 @@ func NewFromBytes(fixedHeader FixedHeader, remaining []byte) (Packet, error) {
 	switch ptype {
 	case TypeCONNACK:
 		return NewCONNACKFromBytes(fixedHeader, remaining)
+	case TypePUBLISH:
+		return NewPUBLISHFromBytes(fixedHeader, remaining)
 	case TypePUBACK:
 		return NewPUBACKFromBytes(fixedHeader, remaining)
 	case TypePUBREC:

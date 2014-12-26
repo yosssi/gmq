@@ -505,6 +505,8 @@ func (cli *Client) handlePacket(p packet.Packet) error {
 	switch ptype {
 	case packet.TypeCONNACK:
 		return cli.handleCONNACK()
+	case packet.TypePUBLISH:
+		return cli.handlePUBLISH(p)
 	case packet.TypePUBACK:
 		return cli.handlePUBACK(p)
 	case packet.TypePUBREC:
@@ -518,7 +520,6 @@ func (cli *Client) handlePacket(p packet.Packet) error {
 	case packet.TypePINGRESP:
 		return cli.handlePINGRESP()
 	case
-		packet.TypePUBLISH,
 		packet.TypePUBREL:
 	default:
 		return packet.ErrInvalidPacketType
@@ -535,6 +536,14 @@ func (cli *Client) handleCONNACK() error {
 	default:
 	}
 
+	return nil
+}
+
+// handlePUBLISH handles the PUBLISH Packet.
+func (cli *Client) handlePUBLISH(p packet.Packet) error {
+	// TODO
+	fmt.Println("PUBLISH Packet")
+	fmt.Printf("%+v\n", p)
 	return nil
 }
 
