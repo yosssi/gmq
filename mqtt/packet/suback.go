@@ -93,22 +93,19 @@ func validateSUBACKBytes(fixedHeader FixedHeader, remaining []byte) error {
 		return ErrInvalidRemainingLen
 	}
 
+	// Extract the Packet Identifier.
+	packetID, _ := decodeUint16(remaining[0:lenSUBACKVariableHeader])
+
+	// Check the Packet Identifier.
+	if packetID == 0 {
+		return ErrInvalidPacketID
+	}
+
 	// Check each Return Code.
 	for _, b := range remaining[lenSUBACKVariableHeader:] {
 		if !mqtt.ValidQoS(b) && b != SUBACKRetFailure {
 			return ErrInvalidSUBACKReturnCode
 		}
-	}
-
-	// Extract the Packet Identifier.
-	packetID, err := decodeUint16(remaining[0:lenSUBACKVariableHeader])
-	if err != nil {
-		return err
-	}
-
-	// Check the Packet Identifier.
-	if packetID == 0 {
-		return ErrInvalidPacketID
 	}
 
 	return nil
