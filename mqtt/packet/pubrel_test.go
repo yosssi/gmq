@@ -36,7 +36,13 @@ func TestPUBREL_setVariableHeader(t *testing.T) {
 }
 
 func TestNewPUBREL(t *testing.T) {
-	p := NewPUBREL(nil)
+	p, err := NewPUBREL(&PUBRELOptions{
+		PacketID: 1,
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+		return
+	}
 
 	ptype, err := p.Type()
 	if err != nil {

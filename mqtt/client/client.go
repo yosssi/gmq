@@ -687,9 +687,12 @@ func (cli *Client) handlePUBREC(p packet.Packet) error {
 	}
 
 	// Create a PUBREL Packet.
-	pubrel := packet.NewPUBREL(&packet.PUBRELOptions{
+	pubrel, err := packet.NewPUBREL(&packet.PUBRELOptions{
 		PacketID: id,
 	})
+	if err != nil {
+		return err
+	}
 
 	// Set the PUBREL Packet to the Session.
 	cli.sess.sendingPackets[id] = pubrel
