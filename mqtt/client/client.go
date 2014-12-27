@@ -564,8 +564,6 @@ func (cli *Client) handlePacket(p packet.Packet) error {
 	default:
 		return packet.ErrInvalidPacketType
 	}
-
-	return nil
 }
 
 // handleCONNACK handles the CONNACK Packet.
