@@ -77,6 +77,18 @@ func TestNewPUBLISH_validateErr(t *testing.T) {
 	}
 }
 
+func TestNewPUBLISHFromBytes_ErrInvalidFixedHeaderLen(t *testing.T) {
+	if _, err := NewPUBLISHFromBytes(nil, nil); err != ErrInvalidFixedHeaderLen {
+		invalidError(t, err, ErrInvalidFixedHeaderLen)
+	}
+}
+
+func TestNewPUBLISHFromBytes(t *testing.T) {
+	if _, err := NewPUBLISHFromBytes([]byte{TypePUBLISH<<4 | 0x02, 0x07}, []byte{0x00, 0x03, 0x61, 0x2F, 0x62, 0x00, 0x01}); err != nil {
+		nilErrorExpected(t, err)
+	}
+}
+
 func Test_validatePUBLISHBytes_fixedHeaderErrInvalidFixedHeaderLen(t *testing.T) {
 	if err := validatePUBLISHBytes(nil, nil); err != ErrInvalidFixedHeaderLen {
 		invalidError(t, err, ErrInvalidFixedHeaderLen)
@@ -116,5 +128,11 @@ func Test_validatePUBLISHBytes_ErrInvalidRemainingLength(t *testing.T) {
 func Test_validatePUBLISHBytes_ErrInvalidPacketID(t *testing.T) {
 	if err := validatePUBLISHBytes([]byte{TypePUBLISH<<4 | 0x02, 0x07}, []byte{0x00, 0x03, 0x61, 0x2F, 0x62, 0x00, 0x00}); err != ErrInvalidPacketID {
 		invalidError(t, err, ErrInvalidPacketID)
+	}
+}
+
+func Test_validatePUBLISHBytes(t *testing.T) {
+	if err := validatePUBLISHBytes([]byte{TypePUBLISH<<4 | 0x02, 0x07}, []byte{0x00, 0x03, 0x61, 0x2F, 0x62, 0x00, 0x01}); err != nil {
+		nilErrorExpected(t, err)
 	}
 }
