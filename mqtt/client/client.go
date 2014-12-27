@@ -136,6 +136,33 @@ func (cli *Client) Connect(opts *ConnectOptions) error {
 	cli.conn.wg.Add(1)
 	go cli.sendPackets(time.Duration(opts.KeepAlive), opts.PINGRESPTimeout)
 
+	// Resend the unacknowledged PUBLISH and PUBREL Packets to the Server
+	// if the Clean Session is false.
+	if !opts.CleanSession {
+		// Lock for reading and updating the Session.
+		cli.muSess.Lock()
+
+		// Unlock.
+		defer cli.muSess.Unlock()
+
+		for id, p := range cli.sess.sendingPackets {
+			// Extract the MQTT Control MQTT Control Packet type.
+			ptype, err := p.Type()
+			if err != nil {
+				return err
+			}
+
+			switch ptype {
+			case packet.TypePUBLISH, packet.TypePUBREL:
+				// Resend th PUBLISH and PUBREL Packet to the Server.
+				cli.conn.send <- p
+			default:
+				// Delete the Packet from the Session.
+				delete(cli.sess.sendingPackets, id)
+			}
+		}
+	}
+
 	return nil
 }
 
