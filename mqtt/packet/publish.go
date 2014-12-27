@@ -215,7 +215,7 @@ func validatePUBLISHBytes(fixedHeader FixedHeader, remaining []byte) error {
 
 	// Check the length of the remaining.
 	if len(remaining) < lenVariableHeader {
-		return ErrInvalidRemainingLen
+		return ErrInvalidRemainingLength
 	}
 
 	// End the validation if the QoS equals to QoS 0.
@@ -224,10 +224,7 @@ func validatePUBLISHBytes(fixedHeader FixedHeader, remaining []byte) error {
 	}
 
 	// Extract the Packet Identifier.
-	packetID, err := decodeUint16(remaining[2+int(lenTopicName) : 2+int(lenTopicName)+2])
-	if err != nil {
-		return err
-	}
+	packetID, _ := decodeUint16(remaining[2+int(lenTopicName) : 2+int(lenTopicName)+2])
 
 	// Check the Packet Identifier.
 	if packetID == 0 {

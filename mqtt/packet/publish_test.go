@@ -76,3 +76,45 @@ func TestNewPUBLISH_validateErr(t *testing.T) {
 		invalidError(t, err, ErrInvalidQoS)
 	}
 }
+
+func Test_validatePUBLISHBytes_fixedHeaderErrInvalidFixedHeaderLen(t *testing.T) {
+	if err := validatePUBLISHBytes(nil, nil); err != ErrInvalidFixedHeaderLen {
+		invalidError(t, err, ErrInvalidFixedHeaderLen)
+	}
+}
+
+func Test_validatePUBLISHBytes_ErrInvalidFixedHeaderLen(t *testing.T) {
+	if err := validatePUBLISHBytes([]byte{TypePUBLISH << 4}, nil); err != ErrInvalidFixedHeaderLen {
+		invalidError(t, err, ErrInvalidFixedHeaderLen)
+	}
+}
+
+func Test_validatePUBLISHBytes_ErrInvalidPacketType(t *testing.T) {
+	if err := validatePUBLISHBytes([]byte{TypeCONNECT << 4, 0x00}, nil); err != ErrInvalidPacketType {
+		invalidError(t, err, ErrInvalidPacketType)
+	}
+}
+
+func Test_validatePUBLISHBytes_ErrInvalidQoS(t *testing.T) {
+	if err := validatePUBLISHBytes([]byte{TypePUBLISH<<4 | 0x06, 0x00}, nil); err != ErrInvalidQoS {
+		invalidError(t, err, ErrInvalidQoS)
+	}
+}
+
+func Test_validatePUBLISHBytes_ErrInvalidRemainingLen(t *testing.T) {
+	if err := validatePUBLISHBytes([]byte{TypePUBLISH << 4, 0x00}, nil); err != ErrInvalidRemainingLen {
+		invalidError(t, err, ErrInvalidRemainingLen)
+	}
+}
+
+func Test_validatePUBLISHBytes_ErrInvalidRemainingLength(t *testing.T) {
+	if err := validatePUBLISHBytes([]byte{TypePUBLISH<<4 | 0x02, 0x02}, []byte{0x00, 0x00}); err != ErrInvalidRemainingLength {
+		invalidError(t, err, ErrInvalidRemainingLength)
+	}
+}
+
+func Test_validatePUBLISHBytes_ErrInvalidPacketID(t *testing.T) {
+	if err := validatePUBLISHBytes([]byte{TypePUBLISH<<4 | 0x02, 0x07}, []byte{0x00, 0x03, 0x61, 0x2F, 0x62, 0x00, 0x00}); err != ErrInvalidPacketID {
+		invalidError(t, err, ErrInvalidPacketID)
+	}
+}
