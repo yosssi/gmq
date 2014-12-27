@@ -35,6 +35,12 @@ func TestPUBREL_setVariableHeader(t *testing.T) {
 	}
 }
 
+func TestNewPUBREL_optsNil(t *testing.T) {
+	if _, err := NewPUBREL(nil); err != ErrInvalidPacketID {
+		invalidError(t, err, ErrInvalidPacketID)
+	}
+}
+
 func TestNewPUBREL(t *testing.T) {
 	p, err := NewPUBREL(&PUBRELOptions{
 		PacketID: 1,
@@ -52,5 +58,53 @@ func TestNewPUBREL(t *testing.T) {
 
 	if ptype != TypePUBREL {
 		t.Errorf("ptype => %X, want => %X", ptype, TypePUBREL)
+	}
+}
+
+func TestNewPUBRELFromBytes_validateErr(t *testing.T) {
+	if _, err := NewPUBRELFromBytes(nil, nil); err != ErrInvalidFixedHeaderLen {
+		invalidError(t, err, ErrInvalidFixedHeaderLen)
+	}
+}
+
+func Test_validatePUBRELBytes_ptypeErr(t *testing.T) {
+	if err := validatePUBRELBytes(nil, nil); err != ErrInvalidFixedHeaderLen {
+		invalidError(t, err, ErrInvalidFixedHeaderLen)
+	}
+}
+
+func Test_validatePUBRELBytes_ErrInvalidFixedHeaderLen(t *testing.T) {
+	if err := validatePUBRELBytes([]byte{TypePUBREL<<4 | 0x02}, nil); err != ErrInvalidFixedHeaderLen {
+		invalidError(t, err, ErrInvalidFixedHeaderLen)
+	}
+}
+
+func Test_validatePUBRELBytes_ErrInvalidPacketType(t *testing.T) {
+	if err := validatePUBRELBytes([]byte{TypeCONNECT<<4 | 0x02, 0x02}, nil); err != ErrInvalidPacketType {
+		invalidError(t, err, ErrInvalidPacketType)
+	}
+}
+
+func Test_validatePUBRELBytes_ErrInvalidFixedHeader(t *testing.T) {
+	if err := validatePUBRELBytes([]byte{TypePUBREL<<4 | 0x01, 0x02}, nil); err != ErrInvalidFixedHeader {
+		invalidError(t, err, ErrInvalidFixedHeader)
+	}
+}
+
+func Test_validatePUBRELBytes_ErrInvalidRemainingLength(t *testing.T) {
+	if err := validatePUBRELBytes([]byte{TypePUBREL<<4 | 0x02, 0x00}, nil); err != ErrInvalidRemainingLength {
+		invalidError(t, err, ErrInvalidRemainingLength)
+	}
+}
+
+func Test_validatePUBRELBytes_ErrInvalidVariableHeaderLen(t *testing.T) {
+	if err := validatePUBRELBytes([]byte{TypePUBREL<<4 | 0x02, 0x02}, nil); err != ErrInvalidVariableHeaderLen {
+		invalidError(t, err, ErrInvalidVariableHeaderLen)
+	}
+}
+
+func Test_validatePUBRELBytes_ErrInvalidPacketID(t *testing.T) {
+	if err := validatePUBRELBytes([]byte{TypePUBREL<<4 | 0x02, 0x02}, []byte{0x00, 0x00}); err != ErrInvalidPacketID {
+		invalidError(t, err, ErrInvalidPacketID)
 	}
 }

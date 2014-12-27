@@ -117,10 +117,7 @@ func validatePUBRELBytes(fixedHeader FixedHeader, variableHeader []byte) error {
 	}
 
 	// Extract the Packet Identifier.
-	packetID, err := decodeUint16(variableHeader)
-	if err != nil {
-		return err
-	}
+	packetID, _ := decodeUint16(variableHeader)
 
 	// Check the Packet Identifier.
 	if packetID == 0 {

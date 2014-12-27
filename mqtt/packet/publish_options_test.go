@@ -1,6 +1,10 @@
 package packet
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/yosssi/gmq/mqtt"
+)
 
 func TestPUBLISHOptions_validate_ErrInvalidQoS(t *testing.T) {
 	opts := &PUBLISHOptions{
@@ -52,8 +56,29 @@ func TestPUBLISHOptions_validate_ErrMessageExceedsMaxStringsLen(t *testing.T) {
 	}
 }
 
-func TestPUBLISHOptions_validate(t *testing.T) {
+func TestPUBLISHOptions_validate_QoS0(t *testing.T) {
 	opts := &PUBLISHOptions{}
+
+	if err := opts.validate(); err != nil {
+		nilErrorExpected(t, err)
+	}
+}
+
+func TestPUBLISHOptions_validate_ErrInvalidPacketID(t *testing.T) {
+	opts := &PUBLISHOptions{
+		QoS: mqtt.QoS1,
+	}
+
+	if err := opts.validate(); err != ErrInvalidPacketID {
+		invalidError(t, err, ErrInvalidPacketID)
+	}
+}
+
+func TestPUBLISHOptions_validate(t *testing.T) {
+	opts := &PUBLISHOptions{
+		QoS:      mqtt.QoS1,
+		PacketID: 1,
+	}
 
 	if err := opts.validate(); err != nil {
 		nilErrorExpected(t, err)
