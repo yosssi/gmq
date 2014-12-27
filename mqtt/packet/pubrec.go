@@ -29,10 +29,15 @@ func (p *PUBREC) setVariableHeader() {
 }
 
 // NewPUBREC creates and returns a PUBACK Packet.
-func NewPUBREC(opts *PUBRECOptions) Packet {
+func NewPUBREC(opts *PUBRECOptions) (Packet, error) {
 	// Initialize the options.
 	if opts == nil {
 		opts = &PUBRECOptions{}
+	}
+
+	// Validate the options.
+	if err := opts.validate(); err != nil {
+		return nil, err
 	}
 
 	// Create a PUBREC Packet.
@@ -47,7 +52,7 @@ func NewPUBREC(opts *PUBRECOptions) Packet {
 	p.setFixedHeader()
 
 	// Return the Packet.
-	return p
+	return p, nil
 }
 
 // NewPUBRECFromBytes creates a PUBREC Packet
@@ -109,6 +114,17 @@ func validatePUBRECBytes(fixedHeader FixedHeader, variableHeader []byte) error {
 	// Check the length of the variable header.
 	if len(variableHeader) != lenPUBRECVariableHeader {
 		return ErrInvalidVariableHeaderLen
+	}
+
+	// Extract the Packet Identifier.
+	packetID, err := decodeUint16(variableHeader)
+	if err != nil {
+		return err
+	}
+
+	// Check the Packet Identifier.
+	if packetID == 0 {
+		return ErrInvalidPacketID
 	}
 
 	return nil

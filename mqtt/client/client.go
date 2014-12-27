@@ -634,9 +634,12 @@ func (cli *Client) handlePUBLISH(p packet.Packet) error {
 		cli.sess.receivingPackets[publish.PacketID] = p
 
 		// Create a PUBREC Packet.
-		pubrec := packet.NewPUBREC(&packet.PUBRECOptions{
+		pubrec, err := packet.NewPUBREC(&packet.PUBRECOptions{
 			PacketID: publish.PacketID,
 		})
+		if err != nil {
+			return err
+		}
 
 		// Send the Packet to the Server.
 		cli.conn.send <- pubrec

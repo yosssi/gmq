@@ -21,13 +21,13 @@ func TestNewFromBytes_PUBACK(t *testing.T) {
 }
 
 func TestNewFromBytes_PUBREC(t *testing.T) {
-	if _, err := NewFromBytes([]byte{TypePUBREC << 4, 0x02}, []byte{0x00, 0x00}); err != nil {
+	if _, err := NewFromBytes([]byte{TypePUBREC << 4, 0x02}, []byte{0x00, 0x01}); err != nil {
 		nilErrorExpected(t, err)
 	}
 }
 
 func TestNewFromBytes_PUBCOMP(t *testing.T) {
-	if _, err := NewFromBytes([]byte{TypePUBCOMP << 4, 0x02}, []byte{0x00, 0x00}); err != nil {
+	if _, err := NewFromBytes([]byte{TypePUBCOMP << 4, 0x02}, []byte{0x00, 0x01}); err != nil {
 		nilErrorExpected(t, err)
 	}
 }

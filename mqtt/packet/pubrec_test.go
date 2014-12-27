@@ -9,7 +9,7 @@ func TestNewPUBRECFromBytes_validatePUBRECBytesErr(t *testing.T) {
 }
 
 func TestNewPUBRECFromBytes(t *testing.T) {
-	if _, err := NewPUBRECFromBytes([]byte{TypePUBREC << 4, 0x02}, []byte{0x00, 0x00}); err != nil {
+	if _, err := NewPUBRECFromBytes([]byte{TypePUBREC << 4, 0x02}, []byte{0x00, 0x01}); err != nil {
 		nilErrorExpected(t, err)
 	}
 }
@@ -51,7 +51,7 @@ func Test_validatePUBRECBytes_ErrInvalidVariableHeaderLen(t *testing.T) {
 }
 
 func Test_validatePUBRECBytes(t *testing.T) {
-	if err := validatePUBRECBytes([]byte{TypePUBREC << 4, 0x02}, []byte{0x00, 0x00}); err != nil {
+	if err := validatePUBRECBytes([]byte{TypePUBREC << 4, 0x02}, []byte{0x00, 0x01}); err != nil {
 		nilErrorExpected(t, err)
 	}
 }
