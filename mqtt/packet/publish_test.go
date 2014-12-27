@@ -8,7 +8,7 @@ import (
 
 func TestPUBLISH_setFixedHeader(t *testing.T) {
 	p := &PUBLISH{
-		dup:    true,
+		DUP:    true,
 		retain: true,
 	}
 

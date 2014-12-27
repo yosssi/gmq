@@ -22,7 +22,7 @@ var ErrInvalidPacketID = errors.New("invalid Packet Identifier")
 type PUBLISH struct {
 	base
 	// dup is the DUP flag of the fixed header.
-	dup bool
+	DUP bool
 	// qos is the QoS of the fixed header.
 	QoS byte
 	// retain is the Retain of the fixed header.
@@ -41,7 +41,7 @@ func (p *PUBLISH) setFixedHeader() {
 	b := TypePUBLISH << 4
 
 	// Set 1 to the Bit 3 if the DUP flag is true.
-	if p.dup {
+	if p.DUP {
 		b |= 0x08
 	}
 
@@ -90,7 +90,7 @@ func NewPUBLISH(opts *PUBLISHOptions) (Packet, error) {
 
 	// Create a PUBLISH Packet.
 	p := &PUBLISH{
-		dup:       opts.DUP,
+		DUP:       opts.DUP,
 		QoS:       opts.QoS,
 		retain:    opts.Retain,
 		TopicName: opts.TopicName,
@@ -124,7 +124,7 @@ func NewPUBLISHFromBytes(fixedHeader FixedHeader, remaining []byte) (Packet, err
 
 	// Create a PUBLISH Packet.
 	p := &PUBLISH{
-		dup:    b&0x08 == 0x08,
+		DUP:    b&0x08 == 0x08,
 		QoS:    b & 0x06 >> 1,
 		retain: b&0x01 == 0x01,
 	}

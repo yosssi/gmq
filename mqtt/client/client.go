@@ -156,8 +156,13 @@ func (cli *Client) Connect(opts *ConnectOptions) error {
 			}
 
 			switch ptype {
-			case packet.TypePUBLISH, packet.TypePUBREL:
-				// Resend th PUBLISH and PUBREL Packet to the Server.
+			case packet.TypePUBLISH:
+				// Set the DUP flag of the PUBLISH Packet to true.
+				p.(*packet.PUBLISH).DUP = true
+				// Resend the PUBLISH Packet to the Server.
+				cli.conn.send <- p
+			case packet.TypePUBREL:
+				// Resend the PUBREL Packet to the Server.
 				cli.conn.send <- p
 			default:
 				// Delete the Packet from the Session.
