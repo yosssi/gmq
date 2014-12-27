@@ -10,6 +10,11 @@ type UNSUBSCRIBEOptions struct {
 
 // validate validates the options.
 func (opts *UNSUBSCRIBEOptions) validate() error {
+	// Check the Packet Identifier.
+	if opts.PacketID == 0 {
+		return ErrInvalidPacketID
+	}
+
 	// Check the existence of the subscription requests.
 	if len(opts.TopicFilters) == 0 {
 		return ErrNoTopicFilter

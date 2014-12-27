@@ -100,5 +100,16 @@ func validateSUBACKBytes(fixedHeader FixedHeader, remaining []byte) error {
 		}
 	}
 
+	// Extract the Packet Identifier.
+	packetID, err := decodeUint16(remaining[0:lenSUBACKVariableHeader])
+	if err != nil {
+		return err
+	}
+
+	// Check the Packet Identifier.
+	if packetID == 0 {
+		return ErrInvalidPacketID
+	}
+
 	return nil
 }

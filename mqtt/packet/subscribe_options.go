@@ -15,6 +15,11 @@ type SUBSCRIBEOptions struct {
 
 // validate validates the options.
 func (opts *SUBSCRIBEOptions) validate() error {
+	// Check the Packet Identifier.
+	if opts.PacketID == 0 {
+		return ErrInvalidPacketID
+	}
+
 	// Check the existence of the subscription requests.
 	if len(opts.SubReqs) == 0 {
 		return ErrInvalidNoSubReq
