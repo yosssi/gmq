@@ -1,6 +1,10 @@
 package packet
 
-import "github.com/yosssi/gmq/mqtt"
+import (
+	"errors"
+
+	"github.com/yosssi/gmq/mqtt"
+)
 
 // Maximum Remaining Length
 const maxRemainingLength = 268435455
@@ -10,6 +14,9 @@ const minLenPUBLISHFixedHeader = 2
 
 // Minimum length of the variable header of the PUBLISH Packet
 const minLenPUBLISHVariableHeader = 2
+
+// Error value
+var ErrInvalidPacketID = errors.New("invalid Packet Identifier")
 
 // PUBLISH represents a PUBLISH Packet.
 type PUBLISH struct {
@@ -207,8 +214,24 @@ func validatePUBLISHBytes(fixedHeader FixedHeader, remaining []byte) error {
 	}
 
 	// Check the length of the remaining.
-	if len(remaining) < int(lenVariableHeader) {
+	if len(remaining) < lenVariableHeader {
 		return ErrInvalidRemainingLen
+	}
+
+	// End the validation if the QoS equals to QoS 0.
+	if qos == mqtt.QoS0 {
+		return nil
+	}
+
+	// Extract the Packet Identifier.
+	packetID, err := decodeUint16(remaining[2+int(lenTopicName) : 2+int(lenTopicName)+2])
+	if err != nil {
+		return err
+	}
+
+	// Check the Packet Identifier.
+	if packetID == 0 {
+		return ErrInvalidPacketID
 	}
 
 	return nil

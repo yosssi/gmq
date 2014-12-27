@@ -29,10 +29,15 @@ func (p *PUBACK) setVariableHeader() {
 }
 
 // NewPUBACK creates and returns a PUBACK Packet.
-func NewPUBACK(opts *PUBACKOptions) Packet {
+func NewPUBACK(opts *PUBACKOptions) (Packet, error) {
 	// Initialize the options.
 	if opts == nil {
 		opts = &PUBACKOptions{}
+	}
+
+	// Validate the options.
+	if err := opts.validate(); err != nil {
+		return nil, err
 	}
 
 	// Create a PUBACK Packet.
@@ -47,7 +52,7 @@ func NewPUBACK(opts *PUBACKOptions) Packet {
 	p.setFixedHeader()
 
 	// Return the Packet.
-	return p
+	return p, nil
 }
 
 // NewPUBACKFromBytes creates a PUBACK Packet
@@ -109,6 +114,17 @@ func validatePUBACKBytes(fixedHeader FixedHeader, variableHeader []byte) error {
 	// Check the length of the variable header.
 	if len(variableHeader) != lenPUBACKVariableHeader {
 		return ErrInvalidVariableHeaderLen
+	}
+
+	// Extract the Packet Identifier.
+	packetID, err := decodeUint16(variableHeader)
+	if err != nil {
+		return err
+	}
+
+	// Check the Packet Identifier.
+	if packetID == 0 {
+		return ErrInvalidPacketID
 	}
 
 	return nil

@@ -60,5 +60,15 @@ func (opts *PUBLISHOptions) validate() error {
 		return ErrMessageExceedsMaxStringsLen
 	}
 
+	// End the validation if the QoS equals to QoS 0.
+	if opts.QoS == mqtt.QoS0 {
+		return nil
+	}
+
+	// Check the Packet Identifier.
+	if opts.PacketID == 0 {
+		return ErrInvalidPacketID
+	}
+
 	return nil
 }

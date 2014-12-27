@@ -15,8 +15,11 @@ import (
 // Multiple errors string format
 const strErrMulti = "error (%q) occurred while handling the other error (%q)"
 
-// Maximum Packet Identifier
-const maxPacketID = 65535
+// Minimum and maximum Packet Identifiers
+const (
+	minPacketID uint16 = 1
+	maxPacketID uint16 = 65535
+)
 
 // Error values
 var (
@@ -604,9 +607,12 @@ func (cli *Client) handlePUBLISH(p packet.Packet) error {
 		cli.handleMessage(publish.TopicName, publish.Message)
 
 		// Create a PUBACK Packet.
-		puback := packet.NewPUBACK(&packet.PUBACKOptions{
+		puback, err := packet.NewPUBACK(&packet.PUBACKOptions{
 			PacketID: publish.PacketID,
 		})
+		if err != nil {
+			return err
+		}
 
 		// Send the Packet to the Server.
 		cli.conn.send <- puback
@@ -989,7 +995,7 @@ func (cli *Client) sendPackets(keepAlive time.Duration, pingrespTimeout time.Dur
 // generatePacketID generates and returns a Packet Identifier.
 func (cli *Client) generatePacketID() (uint16, error) {
 	// Define a Packet Identifier.
-	var id uint16
+	id := minPacketID
 
 	for {
 		// Find a Packet Identifier which does not used.

@@ -9,7 +9,7 @@ func TestNewPUBACKFromBytes_validatePUBACKBytesErr(t *testing.T) {
 }
 
 func TestNewPUBACKFromBytes(t *testing.T) {
-	if _, err := NewPUBACKFromBytes([]byte{TypePUBACK << 4, 0x02}, []byte{0x00, 0x00}); err != nil {
+	if _, err := NewPUBACKFromBytes([]byte{TypePUBACK << 4, 0x02}, []byte{0x00, 0x01}); err != nil {
 		nilErrorExpected(t, err)
 	}
 }
@@ -51,7 +51,7 @@ func Test_validatePUBACKBytes_ErrInvalidVariableHeaderLen(t *testing.T) {
 }
 
 func Test_validatePUBACKBytes(t *testing.T) {
-	if err := validatePUBACKBytes([]byte{TypePUBACK << 4, 0x02}, []byte{0x00, 0x00}); err != nil {
+	if err := validatePUBACKBytes([]byte{TypePUBACK << 4, 0x02}, []byte{0x00, 0x01}); err != nil {
 		nilErrorExpected(t, err)
 	}
 }

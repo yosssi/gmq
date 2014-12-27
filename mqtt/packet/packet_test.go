@@ -15,7 +15,7 @@ func TestNewFromBytes_CONNACK(t *testing.T) {
 }
 
 func TestNewFromBytes_PUBACK(t *testing.T) {
-	if _, err := NewFromBytes([]byte{TypePUBACK << 4, 0x02}, []byte{0x00, 0x00}); err != nil {
+	if _, err := NewFromBytes([]byte{TypePUBACK << 4, 0x02}, []byte{0x00, 0x01}); err != nil {
 		nilErrorExpected(t, err)
 	}
 }
