@@ -29,10 +29,15 @@ func (p *PUBCOMP) setVariableHeader() {
 }
 
 // NewPUBCOMP creates and returns a PUBCOMP Packet.
-func NewPUBCOMP(opts *PUBCOMPOptions) Packet {
+func NewPUBCOMP(opts *PUBCOMPOptions) (Packet, error) {
 	// Initialize the options.
 	if opts == nil {
 		opts = &PUBCOMPOptions{}
+	}
+
+	// Validate the options.
+	if err := opts.validate(); err != nil {
+		return nil, err
 	}
 
 	// Create a PUBCOMP Packet.
@@ -47,7 +52,7 @@ func NewPUBCOMP(opts *PUBCOMPOptions) Packet {
 	p.setFixedHeader()
 
 	// Return the Packet.
-	return p
+	return p, nil
 }
 
 // NewPUBCOMPFromBytes creates a PUBCOMP Packet
@@ -109,6 +114,17 @@ func validatePUBCOMPBytes(fixedHeader FixedHeader, variableHeader []byte) error 
 	// Check the length of the variable header.
 	if len(variableHeader) != lenPUBCOMPVariableHeader {
 		return ErrInvalidVariableHeaderLen
+	}
+
+	// Extract the Packet Identifier.
+	packetID, err := decodeUint16(variableHeader)
+	if err != nil {
+		return err
+	}
+
+	// Check the Packet Identifier.
+	if packetID == 0 {
+		return ErrInvalidPacketID
 	}
 
 	return nil

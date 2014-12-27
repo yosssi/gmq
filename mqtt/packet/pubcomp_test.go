@@ -9,7 +9,7 @@ func TestNewPUBCOMPFromBytes_validatePUBCOMPBytesErr(t *testing.T) {
 }
 
 func TestNewPUBCOMPFromBytes(t *testing.T) {
-	if _, err := NewPUBCOMPFromBytes([]byte{TypePUBCOMP << 4, 0x02}, []byte{0x00, 0x00}); err != nil {
+	if _, err := NewPUBCOMPFromBytes([]byte{TypePUBCOMP << 4, 0x02}, []byte{0x00, 0x01}); err != nil {
 		nilErrorExpected(t, err)
 	}
 }
@@ -51,7 +51,7 @@ func Test_validatePUBCOMPBytes_ErrInvalidVariableHeaderLen(t *testing.T) {
 }
 
 func Test_validatePUBCOMPBytes(t *testing.T) {
-	if err := validatePUBCOMPBytes([]byte{TypePUBCOMP << 4, 0x02}, []byte{0x00, 0x00}); err != nil {
+	if err := validatePUBCOMPBytes([]byte{TypePUBCOMP << 4, 0x02}, []byte{0x00, 0x01}); err != nil {
 		nilErrorExpected(t, err)
 	}
 }

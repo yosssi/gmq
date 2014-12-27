@@ -735,9 +735,12 @@ func (cli *Client) handlePUBREL(p packet.Packet) error {
 	delete(cli.sess.receivingPackets, id)
 
 	// Create a PUBCOMP Packet.
-	pubcomp := packet.NewPUBCOMP(&packet.PUBCOMPOptions{
+	pubcomp, err := packet.NewPUBCOMP(&packet.PUBCOMPOptions{
 		PacketID: id,
 	})
+	if err != nil {
+		return err
+	}
 
 	// Send the Packet to the Server.
 	cli.conn.send <- pubcomp
