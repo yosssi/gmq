@@ -114,7 +114,7 @@ func TestClient_Connect_sendCONNECTErr(t *testing.T) {
 }
 
 func TestClient_Connect_CloseErr(t *testing.T) {
-	ln, err := net.Listen("tcp", ":1883")
+	ln, err := net.Listen("tcp", "localhost:1883")
 	if err != nil {
 		nilErrorExpected(t, err)
 		return
@@ -448,7 +448,7 @@ func TestClient_receive_connNil(t *testing.T) {
 }
 
 func TestClient_receive_ReadByteErr(t *testing.T) {
-	ln, err := net.Listen("tcp", ":1883")
+	ln, err := net.Listen("tcp", "localhost:1883")
 	if err != nil {
 		nilErrorExpected(t, err)
 		return
@@ -494,7 +494,7 @@ func TestClient_receive_ReadByteErr(t *testing.T) {
 }
 
 func TestClient_receive_ReadFullErr(t *testing.T) {
-	ln, err := net.Listen("tcp", ":1883")
+	ln, err := net.Listen("tcp", "localhost:1883")
 	if err != nil {
 		nilErrorExpected(t, err)
 		return
@@ -571,7 +571,7 @@ func TestClient_waitPacket_timeout(t *testing.T) {
 }
 
 func TestClient_receivePackets_handlePacketErr(t *testing.T) {
-	ln, err := net.Listen("tcp", ":1883")
+	ln, err := net.Listen("tcp", "localhost:1883")
 	if err != nil {
 		nilErrorExpected(t, err)
 		return
