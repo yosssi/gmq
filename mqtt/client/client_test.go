@@ -1,6 +1,36 @@
 package client
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
+
+func TestNew_optsNil(t *testing.T) {
+	cli := New(nil)
+
+	cli.disconnc <- struct{}{}
+
+	time.Sleep(500 * time.Millisecond)
+
+	cli.disconnEndc <- struct{}{}
+
+	cli.wg.Wait()
+
+}
+
+func TestNew(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	cli.disconnc <- struct{}{}
+
+	time.Sleep(500 * time.Millisecond)
+
+	cli.disconnEndc <- struct{}{}
+
+	cli.wg.Wait()
+}
 
 func Test_match(t *testing.T) {
 	testCases := []struct {
