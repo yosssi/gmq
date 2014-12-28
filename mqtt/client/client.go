@@ -2,7 +2,6 @@ package client
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"strings"
 	"sync"
@@ -11,9 +10,6 @@ import (
 	"github.com/yosssi/gmq/mqtt"
 	"github.com/yosssi/gmq/mqtt/packet"
 )
-
-// Multiple errors string format
-const strErrMulti = "error (%q) occurred while handling the other error (%q)"
 
 // Minimum and maximum Packet Identifiers
 const (
@@ -116,9 +112,7 @@ func (cli *Client) Connect(opts *ConnectOptions) error {
 
 	if err != nil {
 		// Close the Network Connection.
-		if anotherErr := cli.conn.Close(); anotherErr != nil {
-			return fmt.Errorf(strErrMulti, anotherErr)
-		}
+		cli.conn.Close()
 
 		// Clean the Network Connection and the Session if necessary.
 		cli.clean()

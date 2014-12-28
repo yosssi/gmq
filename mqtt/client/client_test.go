@@ -23,6 +23,154 @@ func (p *packetErr) Type() (byte, error) {
 	return 0x00, errTest
 }
 
+func TestClient_Connect_ErrAlreadyConnected(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	cli.conn = &connection{}
+
+	if err := cli.Connect(nil); err != ErrAlreadyConnected {
+		invalidError(t, err, ErrAlreadyConnected)
+	}
+}
+
+func TestClient_Connect_newConnectionErr(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	if err := cli.Connect(nil); err == nil {
+		notNilErrorExpected(t)
+	}
+}
+
+func TestClient_Connect_restoreSession_TypeErr(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	cli.sess = newSession(false, []byte("cliendID"))
+
+	cli.sess.sendingPackets[1] = &packetErr{}
+
+	err := cli.Connect(&ConnectOptions{
+		Network: "tcp",
+		Address: testAddress,
+	})
+	if err != errTest {
+		invalidError(t, err, errTest)
+	}
+}
+
+func TestClient_Connect_restoreSession(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	cli.sess = newSession(false, []byte("cliendID"))
+
+	publish, err := packet.NewPUBLISH(&packet.PUBLISHOptions{
+		PacketID: 1,
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+	}
+
+	cli.sess.sendingPackets[1] = publish
+
+	pubrel, err := packet.NewPUBREL(&packet.PUBRELOptions{
+		PacketID: 2,
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+	}
+
+	cli.sess.sendingPackets[2] = pubrel
+
+	cli.sess.sendingPackets[3] = packet.NewPINGREQ()
+
+	err = cli.Connect(&ConnectOptions{
+		Network: "tcp",
+		Address: testAddress,
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+	}
+}
+
+func TestClient_Connect_sendCONNECTErr(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	err := cli.Connect(&ConnectOptions{
+		Network: "tcp",
+		Address: testAddress,
+	})
+	if err != packet.ErrInvalidClientIDCleanSession {
+		invalidError(t, err, packet.ErrInvalidClientIDCleanSession)
+	}
+}
+
+func TestClient_Connect_CloseErr(t *testing.T) {
+	ln, err := net.Listen("tcp", ":1883")
+	if err != nil {
+		nilErrorExpected(t, err)
+		return
+	}
+
+	go func() {
+		for {
+			conn, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			conn.Close()
+		}
+	}()
+
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	err = cli.Connect(&ConnectOptions{
+		Network: "tcp",
+		Address: "localhost:1883",
+	})
+
+	if err != packet.ErrInvalidClientIDCleanSession {
+		invalidError(t, err, packet.ErrInvalidClientIDCleanSession)
+	}
+
+	ln.Close()
+}
+
+func TestClient_Disconnect_sendEndDefault(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	err := cli.Connect(&ConnectOptions{
+		Network:  "tcp",
+		Address:  testAddress,
+		ClientID: []byte("clientID"),
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+	}
+
+	cli.conn.sendEnd <- struct{}{}
+
+	time.Sleep(3 * time.Second)
+
+	cli.conn.sendEnd <- struct{}{}
+
+	if err := cli.Disconnect(); err != nil {
+		nilErrorExpected(t, err)
+	}
+}
+
 func TestClient_Publish_connNil(t *testing.T) {
 	cli := New(&Options{
 		ErrHandler: func(_ error) {},
