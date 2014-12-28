@@ -23,6 +23,106 @@ func (p *packetErr) Type() (byte, error) {
 	return 0x00, errTest
 }
 
+func TestClient_Subscribe_connNil(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	if err := cli.Subscribe(nil); err != ErrNotYetConnected {
+		invalidError(t, err, ErrNotYetConnected)
+	}
+}
+
+func TestClient_Subscribe_ErrInvalidNoSubReq(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	cli.conn = &connection{}
+
+	if err := cli.Subscribe(nil); err != packet.ErrInvalidNoSubReq {
+		invalidError(t, err, packet.ErrInvalidNoSubReq)
+	}
+}
+
+func TestClient_Subscribe_generatePacketIDErr(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	cli.conn = &connection{}
+
+	cli.sess = newSession(false, []byte("clientID"))
+
+	id := minPacketID
+
+	for {
+		cli.sess.sendingPackets[id] = nil
+
+		if id == maxPacketID {
+			break
+		}
+
+		id++
+	}
+
+	err := cli.Subscribe(&SubscribeOptions{
+		SubReqs: []*SubReq{
+			&SubReq{},
+		},
+	})
+
+	if err != ErrPacketIDExhaused {
+		invalidError(t, err, ErrPacketIDExhaused)
+	}
+}
+
+func TestClient_Subscribe_NewSUBSCRIBEErr(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	cli.conn = &connection{}
+
+	cli.sess = newSession(false, []byte("clientID"))
+
+	err := cli.Subscribe(&SubscribeOptions{
+		SubReqs: []*SubReq{
+			&SubReq{},
+		},
+	})
+
+	if err != packet.ErrNoTopicFilter {
+		invalidError(t, err, packet.ErrNoTopicFilter)
+	}
+}
+
+func TestClient_Subscribe(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	cli.conn = &connection{}
+
+	cli.sess = newSession(false, []byte("clientID"))
+
+	cli.conn.unackSubs = make(map[string]MessageHandler)
+
+	cli.conn.send = make(chan packet.Packet, 1)
+
+	err := cli.Subscribe(&SubscribeOptions{
+		SubReqs: []*SubReq{
+			&SubReq{
+				TopicFilter: []byte("topicFilter"),
+			},
+		},
+	})
+
+	if err != nil {
+		nilErrorExpected(t, err)
+	}
+}
+
 func TestClient_Unsubscribe_connNil(t *testing.T) {
 	cli := New(&Options{
 		ErrHandler: func(_ error) {},
