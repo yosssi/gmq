@@ -22,6 +22,66 @@ func (p *packetErr) Type() (byte, error) {
 	return 0x00, errTest
 }
 
+func TestClient_handlePUBACK_validatePacketIDErr(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	err := cli.Connect(&ConnectOptions{
+		Network:  "tcp",
+		Address:  testAddress,
+		ClientID: []byte("clientID"),
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+	}
+
+	defer cli.Disconnect()
+
+	p := &packet.PUBACK{
+		PacketID: 1,
+	}
+
+	if err := cli.handlePUBACK(p); err != packet.ErrInvalidPacketID {
+		invalidError(t, err, packet.ErrInvalidPacketID)
+	}
+}
+
+func TestClient_handlePUBACK(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	err := cli.Connect(&ConnectOptions{
+		Network:  "tcp",
+		Address:  testAddress,
+		ClientID: []byte("clientID"),
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+	}
+
+	defer cli.Disconnect()
+
+	p := &packet.PUBACK{
+		PacketID: 1,
+	}
+
+	publish, err := packet.NewPUBLISH(&packet.PUBLISHOptions{
+		PacketID: 1,
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+		return
+	}
+
+	cli.sess.sendingPackets[1] = publish
+
+	if err := cli.handlePUBACK(p); err != nil {
+		nilErrorExpected(t, err)
+	}
+}
+
 func TestClient_handlePUBREC_validatePacketIDErr(t *testing.T) {
 	cli := New(&Options{
 		ErrHandler: func(_ error) {},
