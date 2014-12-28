@@ -385,6 +385,15 @@ func (cli *Client) Unsubscribe(opts *UnsubscribeOptions) error {
 	return nil
 }
 
+// Terminate ternimates the Client.
+func (cli *Client) Terminate() {
+	// Send the end signal to the disconnecting goroutine.
+	cli.disconnEndc <- struct{}{}
+
+	// Wait until all goroutines end.
+	cli.wg.Wait()
+}
+
 // send sends an MQTT Control Packet to the Server.
 func (cli *Client) send(p packet.Packet) error {
 	// Return an error if the Client has not yet connected to the Server.
@@ -1121,7 +1130,7 @@ func New(opts *Options) *Client {
 	// Create a Client.
 	cli := &Client{
 		disconnc:    make(chan struct{}, 1),
-		disconnEndc: make(chan struct{}, 1),
+		disconnEndc: make(chan struct{}),
 		errHandler:  opts.ErrHandler,
 	}
 

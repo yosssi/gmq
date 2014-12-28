@@ -115,6 +115,26 @@ func Test_match(t *testing.T) {
 				topicName   string
 				topicFilter string
 			}{
+				topicName:   "sport/tennis/",
+				topicFilter: "sport/tennis/+",
+			},
+			out: true,
+		},
+		{
+			in: struct {
+				topicName   string
+				topicFilter string
+			}{
+				topicName:   "sport/tennis",
+				topicFilter: "sport/tennis/+",
+			},
+			out: false,
+		},
+		{
+			in: struct {
+				topicName   string
+				topicFilter string
+			}{
 				topicName:   "",
 				topicFilter: "+",
 			},
