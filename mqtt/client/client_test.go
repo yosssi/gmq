@@ -22,6 +22,31 @@ func (p *packetErr) Type() (byte, error) {
 	return 0x00, errTest
 }
 
+func TestClient_handleErrorAndDisconn_connNil(t *testing.T) {
+	cli := New(nil)
+
+	cli.handleErrorAndDisconn(errTest)
+}
+
+func TestClient_handleErrorAndDisconn(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	err := cli.Connect(&ConnectOptions{
+		Network:  "tcp",
+		Address:  testAddress,
+		ClientID: []byte("clientID"),
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+	}
+
+	cli.handleErrorAndDisconn(errTest)
+
+	time.Sleep(1 * time.Second)
+}
+
 func TestClient_sendPackets_sendErr(t *testing.T) {
 	cli := New(nil)
 
@@ -39,6 +64,50 @@ func TestClient_sendPackets_sendErr(t *testing.T) {
 	}
 
 	cli.conn.send <- &packetErr{}
+
+	cli.conn.wg.Wait()
+}
+
+func TestClient_sendPackets_keepAliveErr(t *testing.T) {
+	cli := New(nil)
+
+	err := cli.Connect(&ConnectOptions{
+		Network:   "tcp",
+		Address:   testAddress,
+		ClientID:  []byte("clientID"),
+		KeepAlive: 2,
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+	}
+
+	if err := cli.conn.Close(); err != nil {
+		nilErrorExpected(t, err)
+	}
+
+	cli.conn.wg.Wait()
+}
+
+func TestClient_sendPackets_sendEnd(t *testing.T) {
+	cli := New(nil)
+
+	err := cli.Connect(&ConnectOptions{
+		Network:   "tcp",
+		Address:   testAddress,
+		ClientID:  []byte("clientID"),
+		KeepAlive: 2,
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+	}
+
+	time.Sleep(3 * time.Second)
+
+	cli.muConn.Lock()
+	cli.conn.pingresps = append(cli.conn.pingresps, make(chan struct{}))
+	cli.muConn.Unlock()
+
+	cli.conn.sendEnd <- struct{}{}
 
 	cli.conn.wg.Wait()
 }

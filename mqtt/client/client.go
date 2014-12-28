@@ -872,6 +872,9 @@ func (cli *Client) handlePINGRESP() error {
 
 	// Check the length of pingrespcs.
 	if len(cli.conn.pingresps) == 0 {
+		// Unlock.
+		cli.conn.muPINGRESPs.Unlock()
+
 		// Return an error if there is no channel in pingrespcs.
 		return ErrInvalidPINGRESP
 	}
