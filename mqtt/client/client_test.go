@@ -5,6 +5,30 @@ import (
 	"time"
 )
 
+func TestClient_handleMessage_continue(t *testing.T) {
+	cli := New(nil)
+
+	cli.conn = &connection{}
+
+	cli.conn.ackedSubs = map[string]MessageHandler{
+		"test": nil,
+	}
+
+	cli.handleMessage([]byte("test"), nil)
+}
+
+func TestClient_handleMessage(t *testing.T) {
+	cli := New(nil)
+
+	cli.conn = &connection{}
+
+	cli.conn.ackedSubs = map[string]MessageHandler{
+		"test": func(_, _ []byte) {},
+	}
+
+	cli.handleMessage([]byte("test"), nil)
+}
+
 func TestNew_optsNil(t *testing.T) {
 	cli := New(nil)
 
