@@ -494,7 +494,7 @@ func TestClient_receive_ReadByteErr(t *testing.T) {
 }
 
 func TestClient_receive_ReadFullErr(t *testing.T) {
-	ln, err := net.Listen("tcp", "localhost:1883")
+	ln, err := net.Listen("tcp", "localhost:1884")
 	if err != nil {
 		nilErrorExpected(t, err)
 		return
@@ -520,7 +520,7 @@ func TestClient_receive_ReadFullErr(t *testing.T) {
 
 	err = cli.Connect(&ConnectOptions{
 		Network:  "tcp",
-		Address:  "localhost:1883",
+		Address:  "localhost:1884",
 		ClientID: []byte("clientID"),
 	})
 	if err != nil {
