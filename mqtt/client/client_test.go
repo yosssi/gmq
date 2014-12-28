@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/yosssi/gmq/mqtt"
 	"github.com/yosssi/gmq/mqtt/packet"
 )
 
@@ -19,6 +20,60 @@ func (p *packetErr) WriteTo(w io.Writer) (int64, error) {
 
 func (p *packetErr) Type() (byte, error) {
 	return 0x00, errTest
+}
+
+func TestClient_newPUBLISHPacket_generatePacketID(t *testing.T) {
+	cli := New(nil)
+
+	cli.sess = newSession(false, []byte("clientID"))
+
+	id := minPacketID
+
+	for {
+		cli.sess.sendingPackets[id] = nil
+
+		if id == maxPacketID {
+			break
+		}
+
+		id++
+	}
+
+	_, err := cli.newPUBLISHPacket(&PublishOptions{
+		QoS: mqtt.QoS1,
+	})
+
+	if err != ErrPacketIDExhaused {
+		invalidError(t, err, ErrPacketIDExhaused)
+	}
+}
+
+func TestClient_newPUBLISHPacket_ErrInvalidQoS(t *testing.T) {
+	cli := New(nil)
+
+	cli.sess = newSession(false, []byte("clientID"))
+
+	_, err := cli.newPUBLISHPacket(&PublishOptions{
+		QoS: 0x03,
+	})
+
+	if err != packet.ErrInvalidQoS {
+		invalidError(t, err, packet.ErrInvalidQoS)
+	}
+}
+
+func TestClient_newPUBLISHPacket(t *testing.T) {
+	cli := New(nil)
+
+	cli.sess = newSession(false, []byte("clientID"))
+
+	_, err := cli.newPUBLISHPacket(&PublishOptions{
+		QoS: mqtt.QoS1,
+	})
+
+	if err != nil {
+		nilErrorExpected(t, err)
+	}
 }
 
 func TestClient_validatePacketID_notExist(t *testing.T) {
