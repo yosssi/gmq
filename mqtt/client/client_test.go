@@ -21,6 +21,181 @@ func (p *packetErr) WriteTo(w io.Writer) (int64, error) {
 func (p *packetErr) Type() (byte, error) {
 	return 0x00, errTest
 }
+func TestClient_handleSUBACK_validatePacketIDErr(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	err := cli.Connect(&ConnectOptions{
+		Network:  "tcp",
+		Address:  testAddress,
+		ClientID: []byte("clientID"),
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+	}
+
+	defer cli.Disconnect()
+
+	p := &packet.SUBACK{
+		PacketID:    1,
+		ReturnCodes: []byte{mqtt.QoS0},
+	}
+
+	if err := cli.handleSUBACK(p); err != ErrInvalidPacketID {
+		invalidError(t, err, ErrInvalidPacketID)
+	}
+}
+
+func TestClient_handleSUBACK_ErrInvalidSUBACK(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	err := cli.Connect(&ConnectOptions{
+		Network:  "tcp",
+		Address:  testAddress,
+		ClientID: []byte("clientID"),
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+	}
+
+	defer cli.Disconnect()
+
+	p := &packet.SUBACK{
+		PacketID:    1,
+		ReturnCodes: []byte{mqtt.QoS0},
+	}
+
+	subscribe, err := packet.NewSUBSCRIBE(&packet.SUBSCRIBEOptions{
+		PacketID: 1,
+		SubReqs: []*packet.SubReq{
+			&packet.SubReq{
+				TopicFilter: []byte("test"),
+				QoS:         mqtt.QoS0,
+			},
+			&packet.SubReq{
+				TopicFilter: []byte("test2"),
+				QoS:         mqtt.QoS0,
+			},
+		},
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+	}
+
+	cli.sess.sendingPackets[1] = subscribe
+
+	if err := cli.handleSUBACK(p); err != ErrInvalidSUBACK {
+		invalidError(t, err, ErrInvalidSUBACK)
+	}
+}
+
+func TestClient_handleSUBACK(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	err := cli.Connect(&ConnectOptions{
+		Network:  "tcp",
+		Address:  testAddress,
+		ClientID: []byte("clientID"),
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+	}
+
+	defer cli.Disconnect()
+
+	p := &packet.SUBACK{
+		PacketID:    1,
+		ReturnCodes: []byte{packet.SUBACKRetFailure, mqtt.QoS0},
+	}
+
+	subscribe, err := packet.NewSUBSCRIBE(&packet.SUBSCRIBEOptions{
+		PacketID: 1,
+		SubReqs: []*packet.SubReq{
+			&packet.SubReq{
+				TopicFilter: []byte("test"),
+				QoS:         mqtt.QoS0,
+			},
+			&packet.SubReq{
+				TopicFilter: []byte("test2"),
+				QoS:         mqtt.QoS0,
+			},
+		},
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+	}
+
+	cli.sess.sendingPackets[1] = subscribe
+
+	if err := cli.handleSUBACK(p); err != nil {
+		nilErrorExpected(t, err)
+	}
+}
+
+func TestClient_handleUNSUBACK_validatePacketIDErr(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	err := cli.Connect(&ConnectOptions{
+		Network:  "tcp",
+		Address:  testAddress,
+		ClientID: []byte("clientID"),
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+	}
+
+	defer cli.Disconnect()
+
+	p := &packet.UNSUBACK{
+		PacketID: 1,
+	}
+
+	if err := cli.handleUNSUBACK(p); err != ErrInvalidPacketID {
+		invalidError(t, err, ErrInvalidPacketID)
+	}
+}
+
+func TestClient_handleUNSUBACK(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	err := cli.Connect(&ConnectOptions{
+		Network:  "tcp",
+		Address:  testAddress,
+		ClientID: []byte("clientID"),
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+	}
+
+	defer cli.Disconnect()
+
+	p := &packet.UNSUBACK{
+		PacketID: 1,
+	}
+
+	unsubscribe, err := packet.NewUNSUBSCRIBE(&packet.UNSUBSCRIBEOptions{
+		PacketID:     1,
+		TopicFilters: [][]byte{[]byte("test")},
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+	}
+
+	cli.sess.sendingPackets[1] = unsubscribe
+
+	if err := cli.handleUNSUBACK(p); err != nil {
+		nilErrorExpected(t, err)
+	}
+}
 
 func TestClient_handlePINGRESP_ErrInvalidPINGRESP(t *testing.T) {
 	cli := New(&Options{
