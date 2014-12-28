@@ -28,7 +28,6 @@ var (
 	ErrCONNACKTimeout   = errors.New("the CONNACK Packet was not received within a reasonalbe amount of time")
 	ErrPINGRESPTimeout  = errors.New("the PINGRESP Packet was not received within a reasonalbe amount of time")
 	ErrPacketIDExhaused = errors.New("Packet Identifiers are exhausted")
-	ErrInvalidPacketID  = errors.New("invalid Packet Identifier")
 	ErrInvalidPINGRESP  = errors.New("invalid PINGRESP Packet")
 	ErrInvalidSUBACK    = errors.New("invalid SUBACK Packet")
 )
@@ -639,7 +638,7 @@ func (cli *Client) handlePUBLISH(p packet.Packet) error {
 
 		// Validate the Packet Identifier.
 		if _, exist := cli.sess.receivingPackets[publish.PacketID]; exist {
-			return ErrInvalidPacketID
+			return packet.ErrInvalidPacketID
 		}
 
 		// Set the Packet to the Session.
@@ -1091,7 +1090,7 @@ func (cli *Client) validatePacketID(packets map[uint16]packet.Packet, id uint16,
 	if !exist {
 		// Return an error if there is no Packet which has the Packet Identifier
 		// specified by the parameter.
-		return ErrInvalidPacketID
+		return packet.ErrInvalidPacketID
 	}
 
 	// Extract the MQTT Control Packet type of the Packet.
@@ -1103,7 +1102,7 @@ func (cli *Client) validatePacketID(packets map[uint16]packet.Packet, id uint16,
 	if t != ptype {
 		// Return an error if the Packet's MQTT Control Packet type does not
 		// equal to one specified by the parameter.
-		return ErrInvalidPacketID
+		return packet.ErrInvalidPacketID
 	}
 
 	return nil

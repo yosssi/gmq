@@ -22,6 +22,103 @@ func (p *packetErr) Type() (byte, error) {
 	return 0x00, errTest
 }
 
+func TestClient_handlePUBREL_validatePacketIDErr(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	err := cli.Connect(&ConnectOptions{
+		Network:  "tcp",
+		Address:  testAddress,
+		ClientID: []byte("clientID"),
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+	}
+
+	defer cli.Disconnect()
+
+	p := &packet.PUBREL{
+		PacketID: 1,
+	}
+
+	if err := cli.handlePUBREL(p); err != packet.ErrInvalidPacketID {
+		invalidError(t, err, packet.ErrInvalidPacketID)
+	}
+}
+
+func TestClient_handlePUBREL_NewPUBCOMPErr(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	err := cli.Connect(&ConnectOptions{
+		Network:  "tcp",
+		Address:  testAddress,
+		ClientID: []byte("clientID"),
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+	}
+
+	defer cli.Disconnect()
+
+	p := &packet.PUBREL{
+		PacketID: 0,
+	}
+
+	publish, err := packet.NewPUBLISH(&packet.PUBLISHOptions{
+		PacketID: 1,
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+		return
+	}
+
+	publish.(*packet.PUBLISH).PacketID = 0
+
+	cli.sess.receivingPackets[0] = publish
+
+	if err := cli.handlePUBREL(p); err != packet.ErrInvalidPacketID {
+		invalidError(t, err, packet.ErrInvalidPacketID)
+	}
+}
+
+func TestClient_handlePUBREL(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	err := cli.Connect(&ConnectOptions{
+		Network:  "tcp",
+		Address:  testAddress,
+		ClientID: []byte("clientID"),
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+	}
+
+	defer cli.Disconnect()
+
+	p := &packet.PUBREL{
+		PacketID: 1,
+	}
+
+	publish, err := packet.NewPUBLISH(&packet.PUBLISHOptions{
+		PacketID: 1,
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+		return
+	}
+
+	cli.sess.receivingPackets[1] = publish
+
+	if err := cli.handlePUBREL(p); err != nil {
+		nilErrorExpected(t, err)
+	}
+}
+
 func TestClient_handlePUBCOMP_validatePacketIDErr(t *testing.T) {
 	cli := New(&Options{
 		ErrHandler: func(_ error) {},
@@ -42,8 +139,8 @@ func TestClient_handlePUBCOMP_validatePacketIDErr(t *testing.T) {
 		PacketID: 1,
 	}
 
-	if err := cli.handlePUBCOMP(p); err != ErrInvalidPacketID {
-		invalidError(t, err, ErrInvalidPacketID)
+	if err := cli.handlePUBCOMP(p); err != packet.ErrInvalidPacketID {
+		invalidError(t, err, packet.ErrInvalidPacketID)
 	}
 }
 
@@ -103,8 +200,8 @@ func TestClient_handleSUBACK_validatePacketIDErr(t *testing.T) {
 		ReturnCodes: []byte{mqtt.QoS0},
 	}
 
-	if err := cli.handleSUBACK(p); err != ErrInvalidPacketID {
-		invalidError(t, err, ErrInvalidPacketID)
+	if err := cli.handleSUBACK(p); err != packet.ErrInvalidPacketID {
+		invalidError(t, err, packet.ErrInvalidPacketID)
 	}
 }
 
@@ -218,8 +315,8 @@ func TestClient_handleUNSUBACK_validatePacketIDErr(t *testing.T) {
 		PacketID: 1,
 	}
 
-	if err := cli.handleUNSUBACK(p); err != ErrInvalidPacketID {
-		invalidError(t, err, ErrInvalidPacketID)
+	if err := cli.handleUNSUBACK(p); err != packet.ErrInvalidPacketID {
+		invalidError(t, err, packet.ErrInvalidPacketID)
 	}
 }
 
@@ -472,8 +569,8 @@ func TestClient_newPUBLISHPacket(t *testing.T) {
 func TestClient_validatePacketID_notExist(t *testing.T) {
 	cli := New(nil)
 
-	if err := cli.validatePacketID(map[uint16]packet.Packet{}, 1, packet.TypePUBLISH); err != ErrInvalidPacketID {
-		invalidError(t, err, ErrInvalidPacketID)
+	if err := cli.validatePacketID(map[uint16]packet.Packet{}, 1, packet.TypePUBLISH); err != packet.ErrInvalidPacketID {
+		invalidError(t, err, packet.ErrInvalidPacketID)
 	}
 }
 
@@ -495,8 +592,8 @@ func TestClient_validatePacketID_ErrInvalidPacketID(t *testing.T) {
 		nilErrorExpected(t, err)
 	}
 
-	if err := cli.validatePacketID(map[uint16]packet.Packet{1: p}, 1, packet.TypePUBLISH); err != ErrInvalidPacketID {
-		invalidError(t, err, ErrInvalidPacketID)
+	if err := cli.validatePacketID(map[uint16]packet.Packet{1: p}, 1, packet.TypePUBLISH); err != packet.ErrInvalidPacketID {
+		invalidError(t, err, packet.ErrInvalidPacketID)
 	}
 }
 
