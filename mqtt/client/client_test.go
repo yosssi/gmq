@@ -23,6 +23,132 @@ func (p *packetErr) Type() (byte, error) {
 	return 0x00, errTest
 }
 
+func TestClient_Unsubscribe_connNil(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	if err := cli.Unsubscribe(nil); err != ErrNotYetConnected {
+		invalidError(t, err, ErrNotYetConnected)
+	}
+}
+
+func TestClient_Unsubscribe_ErrNoTopicFilter(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	cli.conn = &connection{}
+
+	if err := cli.Unsubscribe(nil); err != packet.ErrNoTopicFilter {
+		invalidError(t, err, packet.ErrNoTopicFilter)
+	}
+}
+
+func TestClient_Unsubscribe_generatePacketIDErr(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	cli.conn = &connection{}
+
+	cli.sess = newSession(false, []byte("clientID"))
+
+	id := minPacketID
+
+	for {
+		cli.sess.sendingPackets[id] = nil
+
+		if id == maxPacketID {
+			break
+		}
+
+		id++
+	}
+
+	err := cli.Unsubscribe(&UnsubscribeOptions{
+		TopicFilters: [][]byte{
+			[]byte{0x00},
+		},
+	})
+
+	if err != ErrPacketIDExhaused {
+		invalidError(t, err, ErrPacketIDExhaused)
+	}
+}
+
+func TestClient_Unsubscribe_NewUNSUBSCRIBEErr(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	cli.conn = &connection{}
+
+	cli.sess = newSession(false, []byte("clientID"))
+
+	err := cli.Unsubscribe(&UnsubscribeOptions{
+		TopicFilters: [][]byte{
+			make([]byte, 0),
+		},
+	})
+
+	if err != packet.ErrNoTopicFilter {
+		invalidError(t, err, packet.ErrNoTopicFilter)
+	}
+}
+
+func TestClient_Unsubscribe(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	cli.conn = &connection{}
+
+	cli.sess = newSession(false, []byte("clientID"))
+
+	cli.conn.send = make(chan packet.Packet, 1)
+
+	err := cli.Unsubscribe(&UnsubscribeOptions{
+		TopicFilters: [][]byte{
+			[]byte{0x00},
+		},
+	})
+
+	if err != nil {
+		nilErrorExpected(t, err)
+	}
+}
+
+func TestClient_Terminate(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	cli.disconnEndc = make(chan struct{}, 1)
+
+	cli.Terminate()
+}
+
+func TestClient_send_connNil(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	if err := cli.send(nil); err != ErrNotYetConnected {
+		invalidError(t, err, ErrNotYetConnected)
+	}
+}
+
+func TestClient_sendCONNECT_optsNil(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	if err := cli.sendCONNECT(nil); err != packet.ErrInvalidClientIDCleanSession {
+		invalidError(t, err, packet.ErrInvalidClientIDCleanSession)
+	}
+}
+
 func TestClient_receive_connNil(t *testing.T) {
 	cli := New(&Options{
 		ErrHandler: func(_ error) {},
