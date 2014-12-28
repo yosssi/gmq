@@ -220,9 +220,7 @@ func TestClient_Unsubscribe(t *testing.T) {
 }
 
 func TestClient_Terminate(t *testing.T) {
-	cli := New(&Options{
-		ErrHandler: func(_ error) {},
-	})
+	cli := &Client{}
 
 	cli.disconnEndc = make(chan struct{}, 1)
 
@@ -1395,24 +1393,15 @@ func TestClient_handleErrorAndDisconn_connNil(t *testing.T) {
 }
 
 func TestClient_handleErrorAndDisconn_default(t *testing.T) {
-	cli := New(&Options{
-		ErrHandler: func(_ error) {},
-	})
-
-	err := cli.Connect(&ConnectOptions{
-		Network:  "tcp",
-		Address:  testAddress,
-		ClientID: []byte("clientID"),
-	})
-	if err != nil {
-		nilErrorExpected(t, err)
+	cli := &Client{
+		errHandler: func(_ error) {},
 	}
+
+	cli.conn = &connection{}
 
 	cli.disconnc = make(chan struct{})
 
 	cli.handleErrorAndDisconn(errTest)
-
-	time.Sleep(1 * time.Second)
 }
 
 func TestClient_handleErrorAndDisconn(t *testing.T) {
@@ -1490,13 +1479,17 @@ func TestClient_sendPackets_sendEnd(t *testing.T) {
 
 	time.Sleep(3 * time.Second)
 
-	cli.muConn.Lock()
+	cli.conn.muPINGRESPs.Lock()
 	cli.conn.pingresps = append(cli.conn.pingresps, make(chan struct{}))
-	cli.muConn.Unlock()
+	cli.conn.muPINGRESPs.Unlock()
 
 	cli.conn.sendEnd <- struct{}{}
 
-	cli.conn.wg.Wait()
+	cli.muConn.Lock()
+	wg := &cli.conn.wg
+	cli.muConn.Unlock()
+
+	wg.Wait()
 }
 
 func TestClient_newPUBLISHPacket_generatePacketID(t *testing.T) {
