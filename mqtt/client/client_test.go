@@ -23,6 +23,118 @@ func (p *packetErr) Type() (byte, error) {
 	return 0x00, errTest
 }
 
+func TestClient_receive_connNil(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	if _, err := cli.receive(); err != ErrNotYetConnected {
+		invalidError(t, err, ErrNotYetConnected)
+	}
+}
+
+func TestClient_receive_ReadByteErr(t *testing.T) {
+	ln, err := net.Listen("tcp", ":1883")
+	if err != nil {
+		nilErrorExpected(t, err)
+		return
+	}
+
+	c := make(chan struct{})
+
+	go func() {
+		for {
+			conn, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			<-c
+			conn.Write([]byte{packet.TypePUBACK << 4})
+			conn.Close()
+		}
+	}()
+
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	err = cli.Connect(&ConnectOptions{
+		Network:  "tcp",
+		Address:  "localhost:1883",
+		ClientID: []byte("clientID"),
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+		return
+	}
+
+	defer cli.Disconnect()
+
+	c <- struct{}{}
+
+	cli.conn.wg.Wait()
+
+	if err := ln.Close(); err != nil {
+		nilErrorExpected(t, err)
+	}
+}
+
+func TestClient_receive_ReadFullErr(t *testing.T) {
+	ln, err := net.Listen("tcp", ":1883")
+	if err != nil {
+		nilErrorExpected(t, err)
+		return
+	}
+
+	c := make(chan struct{})
+
+	go func() {
+		for {
+			conn, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			<-c
+			conn.Write([]byte{packet.TypePUBACK << 4, 0x80, 0x01})
+			conn.Close()
+		}
+	}()
+
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	err = cli.Connect(&ConnectOptions{
+		Network:  "tcp",
+		Address:  "localhost:1883",
+		ClientID: []byte("clientID"),
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+		return
+	}
+
+	defer cli.Disconnect()
+
+	c <- struct{}{}
+
+	cli.conn.wg.Wait()
+
+	if err := ln.Close(); err != nil {
+		nilErrorExpected(t, err)
+	}
+}
+
+func TestClient_clean_cleanSess(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	cli.sess = newSession(true, []byte("clientID"))
+
+	cli.clean()
+}
+
 func TestClient_waitPacket_timeout(t *testing.T) {
 	cli := New(&Options{
 		ErrHandler: func(_ error) {},
