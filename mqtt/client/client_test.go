@@ -21,6 +21,67 @@ func (p *packetErr) WriteTo(w io.Writer) (int64, error) {
 func (p *packetErr) Type() (byte, error) {
 	return 0x00, errTest
 }
+
+func TestClient_handlePUBCOMP_validatePacketIDErr(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	err := cli.Connect(&ConnectOptions{
+		Network:  "tcp",
+		Address:  testAddress,
+		ClientID: []byte("clientID"),
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+	}
+
+	defer cli.Disconnect()
+
+	p := &packet.PUBCOMP{
+		PacketID: 1,
+	}
+
+	if err := cli.handlePUBCOMP(p); err != ErrInvalidPacketID {
+		invalidError(t, err, ErrInvalidPacketID)
+	}
+}
+
+func TestClient_handlePUBCOMP(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	err := cli.Connect(&ConnectOptions{
+		Network:  "tcp",
+		Address:  testAddress,
+		ClientID: []byte("clientID"),
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+	}
+
+	defer cli.Disconnect()
+
+	p := &packet.PUBCOMP{
+		PacketID: 1,
+	}
+
+	pubrel, err := packet.NewPUBREL(&packet.PUBRELOptions{
+		PacketID: 1,
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+		return
+	}
+
+	cli.sess.sendingPackets[1] = pubrel
+
+	if err := cli.handlePUBCOMP(p); err != nil {
+		nilErrorExpected(t, err)
+	}
+}
+
 func TestClient_handleSUBACK_validatePacketIDErr(t *testing.T) {
 	cli := New(&Options{
 		ErrHandler: func(_ error) {},
