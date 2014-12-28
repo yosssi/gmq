@@ -22,6 +22,103 @@ func (p *packetErr) Type() (byte, error) {
 	return 0x00, errTest
 }
 
+func TestClient_handlePUBREC_validatePacketIDErr(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	err := cli.Connect(&ConnectOptions{
+		Network:  "tcp",
+		Address:  testAddress,
+		ClientID: []byte("clientID"),
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+	}
+
+	defer cli.Disconnect()
+
+	p := &packet.PUBREC{
+		PacketID: 1,
+	}
+
+	if err := cli.handlePUBREC(p); err != packet.ErrInvalidPacketID {
+		invalidError(t, err, packet.ErrInvalidPacketID)
+	}
+}
+
+func TestClient_handlePUBREC_NewPUBRELErr(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	err := cli.Connect(&ConnectOptions{
+		Network:  "tcp",
+		Address:  testAddress,
+		ClientID: []byte("clientID"),
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+	}
+
+	defer cli.Disconnect()
+
+	p := &packet.PUBREC{
+		PacketID: 0,
+	}
+
+	publish, err := packet.NewPUBLISH(&packet.PUBLISHOptions{
+		PacketID: 1,
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+		return
+	}
+
+	publish.(*packet.PUBLISH).PacketID = 0
+
+	cli.sess.sendingPackets[0] = publish
+
+	if err := cli.handlePUBREC(p); err != packet.ErrInvalidPacketID {
+		invalidError(t, err, packet.ErrInvalidPacketID)
+	}
+}
+
+func TestClient_handlePUBREC(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	err := cli.Connect(&ConnectOptions{
+		Network:  "tcp",
+		Address:  testAddress,
+		ClientID: []byte("clientID"),
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+	}
+
+	defer cli.Disconnect()
+
+	p := &packet.PUBREC{
+		PacketID: 1,
+	}
+
+	publish, err := packet.NewPUBLISH(&packet.PUBLISHOptions{
+		PacketID: 1,
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+		return
+	}
+
+	cli.sess.sendingPackets[1] = publish
+
+	if err := cli.handlePUBREC(p); err != nil {
+		nilErrorExpected(t, err)
+	}
+}
+
 func TestClient_handlePUBREL_validatePacketIDErr(t *testing.T) {
 	cli := New(&Options{
 		ErrHandler: func(_ error) {},
