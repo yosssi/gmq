@@ -557,7 +557,8 @@ func (cli *Client) handlePacket(p packet.Packet) error {
 
 	switch ptype {
 	case packet.TypeCONNACK:
-		return cli.handleCONNACK()
+		cli.handleCONNACK()
+		return nil
 	case packet.TypePUBLISH:
 		return cli.handlePUBLISH(p)
 	case packet.TypePUBACK:
@@ -580,14 +581,12 @@ func (cli *Client) handlePacket(p packet.Packet) error {
 }
 
 // handleCONNACK handles the CONNACK Packet.
-func (cli *Client) handleCONNACK() error {
+func (cli *Client) handleCONNACK() {
 	// Notify the arrival of the CONNACK Packet if possible.
 	select {
 	case cli.conn.connack <- struct{}{}:
 	default:
 	}
-
-	return nil
 }
 
 // handlePUBLISH handles the PUBLISH Packet.
