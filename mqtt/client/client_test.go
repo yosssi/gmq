@@ -23,6 +23,48 @@ func (p *packetErr) Type() (byte, error) {
 	return 0x00, errTest
 }
 
+func TestClient_Publish_connNil(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	if err := cli.Publish(nil); err != ErrNotYetConnected {
+		invalidError(t, err, ErrNotYetConnected)
+	}
+}
+
+func TestClient_Publish_newPUBLISHPacketErr(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	cli.conn = &connection{}
+
+	cli.sess = newSession(false, []byte("cliendID"))
+
+	err := cli.Publish(&PublishOptions{
+		QoS: 0x03,
+	})
+
+	if err != packet.ErrInvalidQoS {
+		invalidError(t, err, packet.ErrInvalidQoS)
+	}
+}
+
+func TestClient_Publish(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	cli.conn = &connection{}
+
+	cli.conn.send = make(chan packet.Packet, 1)
+
+	if err := cli.Publish(nil); err != nil {
+		nilErrorExpected(t, err)
+	}
+}
+
 func TestClient_Subscribe_connNil(t *testing.T) {
 	cli := New(&Options{
 		ErrHandler: func(_ error) {},
@@ -1471,13 +1513,13 @@ func TestClient_sendPackets_sendEnd(t *testing.T) {
 		Network:   "tcp",
 		Address:   testAddress,
 		ClientID:  []byte("clientID"),
-		KeepAlive: 2,
+		KeepAlive: 3,
 	})
 	if err != nil {
 		nilErrorExpected(t, err)
 	}
 
-	time.Sleep(3 * time.Second)
+	time.Sleep(5 * time.Second)
 
 	cli.conn.muPINGRESPs.Lock()
 	cli.conn.pingresps = append(cli.conn.pingresps, make(chan struct{}))
