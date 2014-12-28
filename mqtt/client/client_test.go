@@ -22,6 +22,191 @@ func (p *packetErr) Type() (byte, error) {
 	return 0x00, errTest
 }
 
+func TestClient_handlePUBLISH_QoS0(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	err := cli.Connect(&ConnectOptions{
+		Network:  "tcp",
+		Address:  testAddress,
+		ClientID: []byte("clientID"),
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+	}
+
+	defer cli.Disconnect()
+
+	p, err := packet.NewPUBLISH(&packet.PUBLISHOptions{
+		PacketID: 1,
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+		return
+	}
+
+	if err = cli.handlePUBLISH(p); err != nil {
+		nilErrorExpected(t, err)
+	}
+}
+
+func TestClient_handlePUBLISH_QoS1_Err(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	err := cli.Connect(&ConnectOptions{
+		Network:  "tcp",
+		Address:  testAddress,
+		ClientID: []byte("clientID"),
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+	}
+
+	defer cli.Disconnect()
+
+	p, err := packet.NewPUBLISH(&packet.PUBLISHOptions{
+		QoS:      mqtt.QoS1,
+		PacketID: 1,
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+		return
+	}
+
+	p.(*packet.PUBLISH).PacketID = 0
+
+	if err = cli.handlePUBLISH(p); err != packet.ErrInvalidPacketID {
+		invalidError(t, err, packet.ErrInvalidPacketID)
+	}
+}
+
+func TestClient_handlePUBLISH_QoS1(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	err := cli.Connect(&ConnectOptions{
+		Network:  "tcp",
+		Address:  testAddress,
+		ClientID: []byte("clientID"),
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+	}
+
+	defer cli.Disconnect()
+
+	p, err := packet.NewPUBLISH(&packet.PUBLISHOptions{
+		QoS:      mqtt.QoS1,
+		PacketID: 1,
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+		return
+	}
+
+	if err = cli.handlePUBLISH(p); err != nil {
+		nilErrorExpected(t, err)
+	}
+}
+
+func TestClient_handlePUBLISH_QoS2_ErrInvalidPacketID(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	err := cli.Connect(&ConnectOptions{
+		Network:  "tcp",
+		Address:  testAddress,
+		ClientID: []byte("clientID"),
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+	}
+
+	defer cli.Disconnect()
+
+	p, err := packet.NewPUBLISH(&packet.PUBLISHOptions{
+		QoS:      mqtt.QoS2,
+		PacketID: 1,
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+		return
+	}
+
+	cli.sess.receivingPackets[1] = p
+
+	if err = cli.handlePUBLISH(p); err != packet.ErrInvalidPacketID {
+		invalidError(t, err, packet.ErrInvalidPacketID)
+	}
+}
+
+func TestClient_handlePUBLISH_QoS2_NewPUBRECErr(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	err := cli.Connect(&ConnectOptions{
+		Network:  "tcp",
+		Address:  testAddress,
+		ClientID: []byte("clientID"),
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+	}
+
+	defer cli.Disconnect()
+
+	p, err := packet.NewPUBLISH(&packet.PUBLISHOptions{
+		QoS:      mqtt.QoS2,
+		PacketID: 1,
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+		return
+	}
+
+	p.(*packet.PUBLISH).PacketID = 0
+
+	if err = cli.handlePUBLISH(p); err != packet.ErrInvalidPacketID {
+		invalidError(t, err, packet.ErrInvalidPacketID)
+	}
+}
+
+func TestClient_handlePUBLISH_QoS2(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	err := cli.Connect(&ConnectOptions{
+		Network:  "tcp",
+		Address:  testAddress,
+		ClientID: []byte("clientID"),
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+	}
+
+	defer cli.Disconnect()
+
+	p, err := packet.NewPUBLISH(&packet.PUBLISHOptions{
+		QoS:      mqtt.QoS2,
+		PacketID: 1,
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+		return
+	}
+
+	if err = cli.handlePUBLISH(p); err != nil {
+		nilErrorExpected(t, err)
+	}
+}
+
 func TestClient_handlePUBACK_validatePacketIDErr(t *testing.T) {
 	cli := New(&Options{
 		ErrHandler: func(_ error) {},
@@ -583,6 +768,27 @@ func TestClient_handleErrorAndDisconn_connNil(t *testing.T) {
 	cli := New(nil)
 
 	cli.handleErrorAndDisconn(errTest)
+}
+
+func TestClient_handleErrorAndDisconn_default(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	err := cli.Connect(&ConnectOptions{
+		Network:  "tcp",
+		Address:  testAddress,
+		ClientID: []byte("clientID"),
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+	}
+
+	cli.disconnc = make(chan struct{})
+
+	cli.handleErrorAndDisconn(errTest)
+
+	time.Sleep(1 * time.Second)
 }
 
 func TestClient_handleErrorAndDisconn(t *testing.T) {
