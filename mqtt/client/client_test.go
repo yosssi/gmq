@@ -3,6 +3,7 @@ package client
 import (
 	"errors"
 	"io"
+	"net"
 	"testing"
 	"time"
 
@@ -20,6 +21,53 @@ func (p *packetErr) WriteTo(w io.Writer) (int64, error) {
 
 func (p *packetErr) Type() (byte, error) {
 	return 0x00, errTest
+}
+
+func TestClient_receivePackets_handlePacketErr(t *testing.T) {
+	ln, err := net.Listen("tcp", ":1883")
+	if err != nil {
+		nilErrorExpected(t, err)
+		return
+	}
+
+	c := make(chan struct{})
+
+	go func() {
+		for {
+			conn, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			<-c
+			if _, err := conn.Write([]byte{packet.TypePUBACK << 4, 0x02, 0x00, 0x01}); err != nil {
+				return
+			}
+		}
+	}()
+
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	err = cli.Connect(&ConnectOptions{
+		Network:  "tcp",
+		Address:  "localhost:1883",
+		ClientID: []byte("clientID"),
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+		return
+	}
+
+	defer cli.Disconnect()
+
+	c <- struct{}{}
+
+	cli.conn.wg.Wait()
+
+	if err := ln.Close(); err != nil {
+		nilErrorExpected(t, err)
+	}
 }
 
 func TestClient_handlePacket_TypeErr(t *testing.T) {
