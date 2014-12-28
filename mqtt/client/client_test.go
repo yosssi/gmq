@@ -22,6 +22,27 @@ func (p *packetErr) Type() (byte, error) {
 	return 0x00, errTest
 }
 
+func TestClient_sendPackets_sendErr(t *testing.T) {
+	cli := New(nil)
+
+	err := cli.Connect(&ConnectOptions{
+		Network:  "tcp",
+		Address:  testAddress,
+		ClientID: []byte("clientID"),
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+	}
+
+	if err := cli.conn.Close(); err != nil {
+		nilErrorExpected(t, err)
+	}
+
+	cli.conn.send <- &packetErr{}
+
+	cli.conn.wg.Wait()
+}
+
 func TestClient_newPUBLISHPacket_generatePacketID(t *testing.T) {
 	cli := New(nil)
 
