@@ -503,13 +503,6 @@ func (cli *Client) waitPacket(packetc <-chan struct{}, timeout time.Duration, er
 	case <-timeoutc:
 		// Handle the timeout error.
 		cli.handleErrorAndDisconn(errTimeout)
-
-		// Sned a disconnect siganl to the goroutine
-		// via the channel if possible.
-		select {
-		case cli.disconnc <- struct{}{}:
-		default:
-		}
 	}
 }
 

@@ -23,6 +23,27 @@ func (p *packetErr) Type() (byte, error) {
 	return 0x00, errTest
 }
 
+func TestClient_waitPacket_timeout(t *testing.T) {
+	cli := New(&Options{
+		ErrHandler: func(_ error) {},
+	})
+
+	err := cli.Connect(&ConnectOptions{
+		Network:  "tcp",
+		Address:  testAddress,
+		ClientID: []byte("clientID"),
+	})
+	if err != nil {
+		nilErrorExpected(t, err)
+	}
+
+	defer cli.Disconnect()
+
+	cli.conn.wg.Add(1)
+
+	cli.waitPacket(nil, 1, errTest)
+}
+
 func TestClient_receivePackets_handlePacketErr(t *testing.T) {
 	ln, err := net.Listen("tcp", ":1883")
 	if err != nil {
