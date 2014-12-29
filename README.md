@@ -8,7 +8,7 @@
 
 ## Overview
 
-GMQ is a pure Go MQTT client. This library is compatible with [MQTT Version 3.1.1](http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html).
+GMQ is a pure Go MQTT client. This library is compatible with [MQTT Version 3.1.1](http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html). This library provides both a Go package and a command line application.
 
 ## Installation
 
@@ -16,7 +16,7 @@ GMQ is a pure Go MQTT client. This library is compatible with [MQTT Version 3.1.
 $ go get -u github.com/yosssi/gmq/...
 ```
 
-## MQTT Client Library
+## MQTT Client Go Package
 
 ### Example
 
@@ -118,4 +118,46 @@ See [GoDoc](https://godoc.org/github.com/yosssi/gmq).
 
 ## MQTT Client Command Line Application
 
+After the installation, you can launch an MQTT Client Command Line Application by executing the `gmq-cli` command.
 
+```sh
+$ gmq-cli
+gmq-cli>
+```
+
+You can see all GMQ Client commands by executing the `help` GMQ Client command.
+
+```sh
+gmq-cli> help
+GMQ Client 0.0.1
+Usage:
+conn     establish a Network Connection and send a CONNECT Packet to the Server
+disconn  send a DISCONNECT Packet to the Server and disconnect the Network Connection
+help     print this help message
+pub      send a PUBLISH Packet to the Server
+quit     quit this process
+sub      send a SUBSCRIBE Packet to the Server
+unsub    send a UNSUBSCRIBE Packet to the Server
+```
+
+You can see all flags of a GMQ Client command by executing the command with the `-help` flag.
+
+```sh
+gmq-cli> conn -help
+Usage:
+  -P="": Password
+  -c=true: Clean Session
+  -crt="": the path of the certificate authority file to verify the server connection
+  -ct=30: Timeout in seconds for the Client to wait for receiving the CONNACK Packet after sending the CONNECT Packet
+  -h="localhost": host name of the Server which the Client connects to
+  -i="": Client identifier for the Client
+  -k=60: Keep Alive measured in seconds
+  -n="tcp": network on which the Client connects to the Server
+  -p=1883: port number of the Server which the Client connects to
+  -pt=30: Timeout in seconds for the Client to wait for receiving the PINGRESP Packet after sending the PINGREQ Packet
+  -u="": User Name
+  -wm="": Will Message
+  -wq=0: Will QoS
+  -wr=false: Will Retain
+  -wt="": Will Topic
+```
