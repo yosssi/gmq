@@ -118,7 +118,7 @@ See [GoDoc](https://godoc.org/github.com/yosssi/gmq).
 
 ## MQTT Client Command Line Application
 
-After the installation, you can launch an MQTT Client Command Line Application by executing the `gmq-cli` command.
+After the installation, you can launch an MQTT client command line application by executing the `gmq-cli` command.
 
 ```sh
 $ gmq-cli
