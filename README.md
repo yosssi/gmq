@@ -82,7 +82,7 @@ func main() {
 		panic(err)
 	}
 
-	// Publish messages.
+	// Publish a message.
 	err = cli.Publish(&client.PublishOptions{
 		QoS:       mqtt.QoS0,
 		TopicName: []byte("bar/baz"),
