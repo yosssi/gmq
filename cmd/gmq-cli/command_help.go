@@ -30,6 +30,7 @@ func printHelp() {
 	fmt.Printf(strHelpFmt, cmdNameDisconn, "send a DISCONNECT Packet to the Server and disconnect the Network Connection")
 	fmt.Printf(strHelpFmt, cmdNameHelp, "print this help message")
 	fmt.Printf(strHelpFmt, cmdNamePub, "send a PUBLISH Packet to the Server")
+	fmt.Printf(strHelpFmt, cmdNameQuit, "quit this process")
 	fmt.Printf(strHelpFmt, cmdNameSub, "send a SUBSCRIBE Packet to the Server")
 	fmt.Printf(strHelpFmt, cmdNameUnsub, "send a UNSUBSCRIBE Packet to the Server")
 }

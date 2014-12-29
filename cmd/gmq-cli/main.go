@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
 	"strings"
 
 	"github.com/yosssi/gmq/mqtt/client"
@@ -28,6 +29,10 @@ func init() {
 }
 
 func main() {
+	// Set up channel on which to send signal notifications.
+	sigc := make(chan os.Signal, 1)
+	signal.Notify(sigc, os.Interrupt, os.Kill)
+
 	// Print the version of GMQ Client and exit if "v" flag is true.
 	if *flagV {
 		printVersion()
@@ -44,6 +49,12 @@ func main() {
 			printHeader()
 		},
 	})
+
+	// Quit if signal notifications are sent.
+	go func() {
+		<-sigc
+		quit(cli)
+	}()
 
 	// Create a scanner which reads lines from standard input.
 	scanner := bufio.NewScanner(stdin)

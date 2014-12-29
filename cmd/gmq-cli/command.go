@@ -28,6 +28,8 @@ func newCommand(cmdName string, cmdArgs []string, cli *client.Client) (command, 
 		return newCommandHelp(), nil
 	case cmdNamePub:
 		return newCommandPub(cmdArgs, cli)
+	case cmdNameQuit:
+		return newCommandQuit(cli), nil
 	case cmdNameSub:
 		return newCommandSub(cmdArgs, cli)
 	case cmdNameUnsub:
