@@ -42,12 +42,7 @@ func main() {
 
 	// Create a Client.
 	cli := client.New(&client.Options{
-		ErrorHandler: func(err error) {
-			// Print the error to standard error.
-			os.Stderr.WriteString("\n" + err.Error() + "\n")
-
-			printHeader()
-		},
+		ErrorHandler: errorHandler,
 	})
 
 	// Quit if signal notifications are sent.
@@ -140,4 +135,11 @@ func cmdNameArgs(s string) (string, []string) {
 	}
 
 	return cmdName, cmdArgs
+}
+
+func errorHandler(err error) {
+	// Print the error to standard error.
+	os.Stderr.WriteString("\n" + err.Error() + "\n")
+
+	printHeader()
 }
