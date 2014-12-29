@@ -50,8 +50,8 @@ type Client struct {
 	// which disconnects the Network Connection.
 	disconnEndc chan struct{}
 
-	// errHandler is the error handler.
-	errHandler func(error)
+	// errorHandler is the error handler.
+	errorHandler ErrorHandler
 }
 
 // Connect establishes a Network Connection to the Server and
@@ -902,8 +902,8 @@ func (cli *Client) handleErrorAndDisconn(err error) {
 	cli.muConn.RUnlock()
 
 	// Handle the error.
-	if cli.errHandler != nil {
-		cli.errHandler(err)
+	if cli.errorHandler != nil {
+		cli.errorHandler(err)
 	}
 
 	// Send a disconnect signal to the goroutine
@@ -1117,9 +1117,9 @@ func New(opts *Options) *Client {
 	}
 	// Create a Client.
 	cli := &Client{
-		disconnc:    make(chan struct{}, 1),
-		disconnEndc: make(chan struct{}),
-		errHandler:  opts.ErrHandler,
+		disconnc:     make(chan struct{}, 1),
+		disconnEndc:  make(chan struct{}),
+		errorHandler: opts.ErrorHandler,
 	}
 
 	// Launch a goroutine which disconnects the Network Connection.
@@ -1133,8 +1133,8 @@ func New(opts *Options) *Client {
 			select {
 			case <-cli.disconnc:
 				if err := cli.Disconnect(); err != nil {
-					if cli.errHandler != nil {
-						cli.errHandler(err)
+					if cli.errorHandler != nil {
+						cli.errorHandler(err)
 					}
 				}
 			case <-cli.disconnEndc:

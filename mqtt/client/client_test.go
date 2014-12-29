@@ -25,7 +25,7 @@ func (p *packetErr) Type() (byte, error) {
 
 func TestClient_Connect_ErrAlreadyConnected(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	cli.conn = &connection{}
@@ -37,7 +37,7 @@ func TestClient_Connect_ErrAlreadyConnected(t *testing.T) {
 
 func TestClient_Connect_newConnectionErr(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	if err := cli.Connect(nil); err == nil {
@@ -47,7 +47,7 @@ func TestClient_Connect_newConnectionErr(t *testing.T) {
 
 func TestClient_Connect_restoreSession_TypeErr(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	cli.sess = newSession(false, []byte("cliendID"))
@@ -65,7 +65,7 @@ func TestClient_Connect_restoreSession_TypeErr(t *testing.T) {
 
 func TestClient_Connect_restoreSession(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	cli.sess = newSession(false, []byte("cliendID"))
@@ -101,7 +101,7 @@ func TestClient_Connect_restoreSession(t *testing.T) {
 
 func TestClient_Connect_sendCONNECTErr(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err := cli.Connect(&ConnectOptions{
@@ -114,7 +114,7 @@ func TestClient_Connect_sendCONNECTErr(t *testing.T) {
 }
 
 func TestClient_Connect_CloseErr(t *testing.T) {
-	ln, err := net.Listen("tcp", "localhost:1883")
+	ln, err := net.Listen("tcp", ":1883")
 	if err != nil {
 		nilErrorExpected(t, err)
 		return
@@ -131,7 +131,7 @@ func TestClient_Connect_CloseErr(t *testing.T) {
 	}()
 
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err = cli.Connect(&ConnectOptions{
@@ -148,7 +148,7 @@ func TestClient_Connect_CloseErr(t *testing.T) {
 
 func TestClient_Disconnect_sendEndDefault(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err := cli.Connect(&ConnectOptions{
@@ -173,7 +173,7 @@ func TestClient_Disconnect_sendEndDefault(t *testing.T) {
 
 func TestClient_Publish_connNil(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	if err := cli.Publish(nil); err != ErrNotYetConnected {
@@ -183,7 +183,7 @@ func TestClient_Publish_connNil(t *testing.T) {
 
 func TestClient_Publish_newPUBLISHPacketErr(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	cli.conn = &connection{}
@@ -201,7 +201,7 @@ func TestClient_Publish_newPUBLISHPacketErr(t *testing.T) {
 
 func TestClient_Publish(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	cli.conn = &connection{}
@@ -215,7 +215,7 @@ func TestClient_Publish(t *testing.T) {
 
 func TestClient_Subscribe_connNil(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	if err := cli.Subscribe(nil); err != ErrNotYetConnected {
@@ -225,7 +225,7 @@ func TestClient_Subscribe_connNil(t *testing.T) {
 
 func TestClient_Subscribe_ErrInvalidNoSubReq(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	cli.conn = &connection{}
@@ -237,7 +237,7 @@ func TestClient_Subscribe_ErrInvalidNoSubReq(t *testing.T) {
 
 func TestClient_Subscribe_generatePacketIDErr(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	cli.conn = &connection{}
@@ -269,7 +269,7 @@ func TestClient_Subscribe_generatePacketIDErr(t *testing.T) {
 
 func TestClient_Subscribe_NewSUBSCRIBEErr(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	cli.conn = &connection{}
@@ -289,7 +289,7 @@ func TestClient_Subscribe_NewSUBSCRIBEErr(t *testing.T) {
 
 func TestClient_Subscribe(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	cli.conn = &connection{}
@@ -315,7 +315,7 @@ func TestClient_Subscribe(t *testing.T) {
 
 func TestClient_Unsubscribe_connNil(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	if err := cli.Unsubscribe(nil); err != ErrNotYetConnected {
@@ -325,7 +325,7 @@ func TestClient_Unsubscribe_connNil(t *testing.T) {
 
 func TestClient_Unsubscribe_ErrNoTopicFilter(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	cli.conn = &connection{}
@@ -337,7 +337,7 @@ func TestClient_Unsubscribe_ErrNoTopicFilter(t *testing.T) {
 
 func TestClient_Unsubscribe_generatePacketIDErr(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	cli.conn = &connection{}
@@ -369,7 +369,7 @@ func TestClient_Unsubscribe_generatePacketIDErr(t *testing.T) {
 
 func TestClient_Unsubscribe_NewUNSUBSCRIBEErr(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	cli.conn = &connection{}
@@ -389,7 +389,7 @@ func TestClient_Unsubscribe_NewUNSUBSCRIBEErr(t *testing.T) {
 
 func TestClient_Unsubscribe(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	cli.conn = &connection{}
@@ -419,7 +419,7 @@ func TestClient_Terminate(t *testing.T) {
 
 func TestClient_send_connNil(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	if err := cli.send(nil); err != ErrNotYetConnected {
@@ -429,7 +429,7 @@ func TestClient_send_connNil(t *testing.T) {
 
 func TestClient_sendCONNECT_optsNil(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	if err := cli.sendCONNECT(nil); err != packet.ErrInvalidClientIDCleanSession {
@@ -439,7 +439,7 @@ func TestClient_sendCONNECT_optsNil(t *testing.T) {
 
 func TestClient_receive_connNil(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	if _, err := cli.receive(); err != ErrNotYetConnected {
@@ -448,7 +448,7 @@ func TestClient_receive_connNil(t *testing.T) {
 }
 
 func TestClient_receive_ReadByteErr(t *testing.T) {
-	ln, err := net.Listen("tcp", "localhost:1883")
+	ln, err := net.Listen("tcp", ":1883")
 	if err != nil {
 		nilErrorExpected(t, err)
 		return
@@ -469,7 +469,7 @@ func TestClient_receive_ReadByteErr(t *testing.T) {
 	}()
 
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err = cli.Connect(&ConnectOptions{
@@ -494,7 +494,7 @@ func TestClient_receive_ReadByteErr(t *testing.T) {
 }
 
 func TestClient_receive_ReadFullErr(t *testing.T) {
-	ln, err := net.Listen("tcp", "localhost:1884")
+	ln, err := net.Listen("tcp", ":1884")
 	if err != nil {
 		nilErrorExpected(t, err)
 		return
@@ -515,7 +515,7 @@ func TestClient_receive_ReadFullErr(t *testing.T) {
 	}()
 
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err = cli.Connect(&ConnectOptions{
@@ -541,7 +541,7 @@ func TestClient_receive_ReadFullErr(t *testing.T) {
 
 func TestClient_clean_cleanSess(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	cli.sess = newSession(true, []byte("clientID"))
@@ -551,7 +551,7 @@ func TestClient_clean_cleanSess(t *testing.T) {
 
 func TestClient_waitPacket_timeout(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err := cli.Connect(&ConnectOptions{
@@ -571,7 +571,7 @@ func TestClient_waitPacket_timeout(t *testing.T) {
 }
 
 func TestClient_receivePackets_handlePacketErr(t *testing.T) {
-	ln, err := net.Listen("tcp", "localhost:1883")
+	ln, err := net.Listen("tcp", ":1883")
 	if err != nil {
 		nilErrorExpected(t, err)
 		return
@@ -593,7 +593,7 @@ func TestClient_receivePackets_handlePacketErr(t *testing.T) {
 	}()
 
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err = cli.Connect(&ConnectOptions{
@@ -619,7 +619,7 @@ func TestClient_receivePackets_handlePacketErr(t *testing.T) {
 
 func TestClient_handlePacket_TypeErr(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	p := &packetErr{}
@@ -631,7 +631,7 @@ func TestClient_handlePacket_TypeErr(t *testing.T) {
 
 func TestClient_handlePacket_PUBLISH(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err := cli.Connect(&ConnectOptions{
@@ -658,7 +658,7 @@ func TestClient_handlePacket_PUBLISH(t *testing.T) {
 
 func TestClient_handlePacket_PUBACK(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err := cli.Connect(&ConnectOptions{
@@ -681,7 +681,7 @@ func TestClient_handlePacket_PUBACK(t *testing.T) {
 
 func TestClient_handlePacket_PUBREC(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err := cli.Connect(&ConnectOptions{
@@ -704,7 +704,7 @@ func TestClient_handlePacket_PUBREC(t *testing.T) {
 
 func TestClient_handlePacket_PUBREL(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err := cli.Connect(&ConnectOptions{
@@ -727,7 +727,7 @@ func TestClient_handlePacket_PUBREL(t *testing.T) {
 
 func TestClient_handlePacket_PUBCOMP(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err := cli.Connect(&ConnectOptions{
@@ -750,7 +750,7 @@ func TestClient_handlePacket_PUBCOMP(t *testing.T) {
 
 func TestClient_handlePacket_SUBACK(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err := cli.Connect(&ConnectOptions{
@@ -774,7 +774,7 @@ func TestClient_handlePacket_SUBACK(t *testing.T) {
 
 func TestClient_handlePacket_UNSUBACK(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err := cli.Connect(&ConnectOptions{
@@ -798,7 +798,7 @@ func TestClient_handlePacket_UNSUBACK(t *testing.T) {
 
 func TestClient_handlePacket_ErrInvalidPacketType(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err := cli.Connect(&ConnectOptions{
@@ -824,7 +824,7 @@ func TestClient_handlePacket_ErrInvalidPacketType(t *testing.T) {
 
 func TestClient_handleCONNACK_default(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	cli.conn = &connection{}
@@ -836,7 +836,7 @@ func TestClient_handleCONNACK_default(t *testing.T) {
 
 func TestClient_handlePUBLISH_QoS0(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err := cli.Connect(&ConnectOptions{
@@ -865,7 +865,7 @@ func TestClient_handlePUBLISH_QoS0(t *testing.T) {
 
 func TestClient_handlePUBLISH_QoS1_Err(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err := cli.Connect(&ConnectOptions{
@@ -897,7 +897,7 @@ func TestClient_handlePUBLISH_QoS1_Err(t *testing.T) {
 
 func TestClient_handlePUBLISH_QoS1(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err := cli.Connect(&ConnectOptions{
@@ -927,7 +927,7 @@ func TestClient_handlePUBLISH_QoS1(t *testing.T) {
 
 func TestClient_handlePUBLISH_QoS2_ErrInvalidPacketID(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err := cli.Connect(&ConnectOptions{
@@ -959,7 +959,7 @@ func TestClient_handlePUBLISH_QoS2_ErrInvalidPacketID(t *testing.T) {
 
 func TestClient_handlePUBLISH_QoS2_NewPUBRECErr(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err := cli.Connect(&ConnectOptions{
@@ -991,7 +991,7 @@ func TestClient_handlePUBLISH_QoS2_NewPUBRECErr(t *testing.T) {
 
 func TestClient_handlePUBLISH_QoS2(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err := cli.Connect(&ConnectOptions{
@@ -1021,7 +1021,7 @@ func TestClient_handlePUBLISH_QoS2(t *testing.T) {
 
 func TestClient_handlePUBACK_validatePacketIDErr(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err := cli.Connect(&ConnectOptions{
@@ -1046,7 +1046,7 @@ func TestClient_handlePUBACK_validatePacketIDErr(t *testing.T) {
 
 func TestClient_handlePUBACK(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err := cli.Connect(&ConnectOptions{
@@ -1081,7 +1081,7 @@ func TestClient_handlePUBACK(t *testing.T) {
 
 func TestClient_handlePUBREC_validatePacketIDErr(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err := cli.Connect(&ConnectOptions{
@@ -1106,7 +1106,7 @@ func TestClient_handlePUBREC_validatePacketIDErr(t *testing.T) {
 
 func TestClient_handlePUBREC_NewPUBRELErr(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err := cli.Connect(&ConnectOptions{
@@ -1143,7 +1143,7 @@ func TestClient_handlePUBREC_NewPUBRELErr(t *testing.T) {
 
 func TestClient_handlePUBREC(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err := cli.Connect(&ConnectOptions{
@@ -1178,7 +1178,7 @@ func TestClient_handlePUBREC(t *testing.T) {
 
 func TestClient_handlePUBREL_validatePacketIDErr(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err := cli.Connect(&ConnectOptions{
@@ -1203,7 +1203,7 @@ func TestClient_handlePUBREL_validatePacketIDErr(t *testing.T) {
 
 func TestClient_handlePUBREL_NewPUBCOMPErr(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err := cli.Connect(&ConnectOptions{
@@ -1240,7 +1240,7 @@ func TestClient_handlePUBREL_NewPUBCOMPErr(t *testing.T) {
 
 func TestClient_handlePUBREL(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err := cli.Connect(&ConnectOptions{
@@ -1275,7 +1275,7 @@ func TestClient_handlePUBREL(t *testing.T) {
 
 func TestClient_handlePUBCOMP_validatePacketIDErr(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err := cli.Connect(&ConnectOptions{
@@ -1300,7 +1300,7 @@ func TestClient_handlePUBCOMP_validatePacketIDErr(t *testing.T) {
 
 func TestClient_handlePUBCOMP(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err := cli.Connect(&ConnectOptions{
@@ -1335,7 +1335,7 @@ func TestClient_handlePUBCOMP(t *testing.T) {
 
 func TestClient_handleSUBACK_validatePacketIDErr(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err := cli.Connect(&ConnectOptions{
@@ -1361,7 +1361,7 @@ func TestClient_handleSUBACK_validatePacketIDErr(t *testing.T) {
 
 func TestClient_handleSUBACK_ErrInvalidSUBACK(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err := cli.Connect(&ConnectOptions{
@@ -1406,7 +1406,7 @@ func TestClient_handleSUBACK_ErrInvalidSUBACK(t *testing.T) {
 
 func TestClient_handleSUBACK(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err := cli.Connect(&ConnectOptions{
@@ -1451,7 +1451,7 @@ func TestClient_handleSUBACK(t *testing.T) {
 
 func TestClient_handleUNSUBACK_validatePacketIDErr(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err := cli.Connect(&ConnectOptions{
@@ -1476,7 +1476,7 @@ func TestClient_handleUNSUBACK_validatePacketIDErr(t *testing.T) {
 
 func TestClient_handleUNSUBACK(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err := cli.Connect(&ConnectOptions{
@@ -1511,7 +1511,7 @@ func TestClient_handleUNSUBACK(t *testing.T) {
 
 func TestClient_handlePINGRESP_ErrInvalidPINGRESP(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err := cli.Connect(&ConnectOptions{
@@ -1532,7 +1532,7 @@ func TestClient_handlePINGRESP_ErrInvalidPINGRESP(t *testing.T) {
 
 func TestClient_handlePINGRESP_default(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err := cli.Connect(&ConnectOptions{
@@ -1555,7 +1555,7 @@ func TestClient_handlePINGRESP_default(t *testing.T) {
 
 func TestClient_handlePINGRESP(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err := cli.Connect(&ConnectOptions{
@@ -1584,7 +1584,7 @@ func TestClient_handleErrorAndDisconn_connNil(t *testing.T) {
 
 func TestClient_handleErrorAndDisconn_default(t *testing.T) {
 	cli := &Client{
-		errHandler: func(_ error) {},
+		errorHandler: func(_ error) {},
 	}
 
 	cli.conn = &connection{}
@@ -1596,7 +1596,7 @@ func TestClient_handleErrorAndDisconn_default(t *testing.T) {
 
 func TestClient_handleErrorAndDisconn(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	err := cli.Connect(&ConnectOptions{
@@ -1821,7 +1821,7 @@ func TestNew_optsNil(t *testing.T) {
 
 func TestNew(t *testing.T) {
 	cli := New(&Options{
-		ErrHandler: func(_ error) {},
+		ErrorHandler: func(_ error) {},
 	})
 
 	cli.disconnc <- struct{}{}
