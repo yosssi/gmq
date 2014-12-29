@@ -25,7 +25,7 @@ build:
     - script:
         name: go test
         code: |
-          packages=(mqtt mqtt/client mqtt/packet)
+          packages=(cmd/gmq-cli mqtt mqtt/client mqtt/packet)
           for package in ${packages[@]}; do go test -v -cover -race ./$package; done
 
     # Invoke goveralls
