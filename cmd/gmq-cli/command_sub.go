@@ -44,10 +44,7 @@ func newCommandSub(args []string, cli *client.Client) (command, error) {
 				&client.SubReq{
 					TopicFilter: []byte(*topicFilter),
 					QoS:         byte(*qos),
-					Handler: func(topicName, message []byte) {
-						os.Stdout.WriteString("\n[Topic Name]\n" + string(topicName) + "\n[Application Message]\n" + string(message) + "\n")
-						printHeader()
-					},
+					Handler:     messageHandler,
 				},
 			},
 		},
@@ -55,4 +52,9 @@ func newCommandSub(args []string, cli *client.Client) (command, error) {
 
 	// Return the command.
 	return cmd, nil
+}
+
+func messageHandler(topicName, message []byte) {
+	os.Stdout.WriteString("\n[Topic Name]\n" + string(topicName) + "\n[Application Message]\n" + string(message) + "\n")
+	printHeader()
 }
