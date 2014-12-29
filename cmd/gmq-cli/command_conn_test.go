@@ -68,7 +68,7 @@ func Test_newCommandConn(t *testing.T) {
 
 	defer quit(cli)
 
-	if _, err := newCommandConn([]string{"-crt", filepath.Join("test", "mosquitto.org.crt")}, cli); err != nil {
+	if _, err := newCommandConn([]string{"-crt", filepath.Join("test", "test.crt")}, cli); err != nil {
 		nilErrorExpected(t, err)
 	}
 }
