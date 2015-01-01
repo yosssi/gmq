@@ -169,6 +169,120 @@ if err != nil {
 }
 ```
 
+#### SUBSCRIBE - Subscribe to topics
+
+```go
+// Create an MQTT Client.
+cli := client.New(&client.Options{
+	ErrorHandler: func(err error) {
+		fmt.Println(err)
+	},
+})
+
+// Terminate the Client.
+defer cli.Terminate()
+
+// Subscribe to topics.
+err = cli.Subscribe(&client.SubscribeOptions{
+	SubReqs: []*client.SubReq{
+		&client.SubReq{
+			// TopicFilter is the Topic Filter of the Subscription.
+			TopicFilter: []byte("foo"),
+			// QoS is the requsting QoS.
+			QoS:         mqtt.QoS0,
+			// Handler is the handler which handles the Application Message
+			// sent from the Server.
+			Handler: func(topicName, message []byte) {
+				fmt.Println(string(topicName), string(message))
+			},
+		},
+		&client.SubReq{
+			TopicFilter: []byte("bar/#"),
+			QoS:         mqtt.QoS1,
+			Handler: func(topicName, message []byte) {
+				fmt.Println(string(topicName), string(message))
+			},
+		},
+	},
+})
+if err != nil {
+	panic(err)
+}
+```
+
+#### PUBLISH – Publish message
+
+```go
+// Create an MQTT Client.
+cli := client.New(&client.Options{
+	ErrorHandler: func(err error) {
+		fmt.Println(err)
+	},
+})
+
+// Terminate the Client.
+defer cli.Terminate()
+
+// Publish a message.
+err = cli.Publish(&client.PublishOptions{
+	// QoS is the QoS of the PUBLISH Packet.
+	QoS:       mqtt.QoS0,
+	// Retain is the Retain of the PUBLISH Packet.
+	Retain:    true,
+	// TopicName is the Topic Name of the PUBLISH Packet.
+	TopicName: []byte("bar/baz"),
+	// Message is the Application Message of the PUBLISH Packet.
+	Message:   []byte("testMessage"),
+})
+if err != nil {
+	panic(err)
+}
+```
+
+#### UNSUBSCRIBE – Unsubscribe from topics
+
+```go
+// Create an MQTT Client.
+cli := client.New(&client.Options{
+	ErrorHandler: func(err error) {
+		fmt.Println(err)
+	},
+})
+
+// Terminate the Client.
+defer cli.Terminate()
+
+// Unsubscribe from topics.
+err = cli.Unsubscribe(&client.UnsubscribeOptions{
+	// TopicFilters represents a slice of the Topic Filters.
+	TopicFilters: [][]byte{
+		[]byte("foo"),
+	},
+})
+if err != nil {
+	panic(err)
+}
+```
+
+#### DISCONNECT – Disconnect the Network Connection
+
+```go
+// Create an MQTT Client.
+cli := client.New(&client.Options{
+	ErrorHandler: func(err error) {
+		fmt.Println(err)
+	},
+})
+
+// Terminate the Client.
+defer cli.Terminate()
+
+// Disconnect the network connection.
+if err := cli.Disconnect(); err != nil {
+	panic(err)
+}
+```
+
 ## MQTT Client Command Line Application
 
 After the installation, you can launch an MQTT client command line application by executing the `gmq-cli` command.
