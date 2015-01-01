@@ -185,12 +185,12 @@ defer cli.Terminate()
 // Read the certificate file.
 b, err := ioutil.ReadFile("/path/to/crtFile")
 if err != nil {
-	return nil, err
+	panic(err)
 }
 
 roots := x509.NewCertPool()
 if ok := roots.AppendCertsFromPEM(b); !ok {
-	return nil, errParseCrtFailure
+	panic("failed to parse root certificate")
 }
 
 tlsConfig = &tls.Config{
