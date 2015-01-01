@@ -105,16 +105,69 @@ func main() {
 	// Wait for receiving a signal.
 	<-sigc
 
-	// Disconnect the network connection.
+	// Disconnect the Network Connection.
 	if err := cli.Disconnect(); err != nil {
 		panic(err)
 	}
 }
 ```
 
-### APIs
+### Details about APIs
 
-See [GoDoc](https://godoc.org/github.com/yosssi/gmq).
+#### CONNECT – Client requests a connection to a Server
+
+```go
+// Create an MQTT Client.
+cli := client.New(&client.Options{
+	ErrorHandler: func(err error) {
+		fmt.Println(err)
+	},
+})
+
+// Terminate the Client.
+defer cli.Terminate()
+
+// Connect to the MQTT Server.
+err := cli.Connect(&client.ConnectOptions{
+	// Network is the network on which the Client connects to.
+	Network:         "tcp",
+	// Address is the address which the Client connects to.
+	Address:         "iot.eclipse.org:1883",
+	// TLSConfig is the configuration for the TLS connection.
+	// If this property is not nil, the Client tries to use TLS
+	// for the connection.
+	TLSConfig:       nil,
+	// CONNACKTimeout is timeout in seconds for the Client
+	// to wait for receiving the CONNACK Packet after sending
+	// the CONNECT Packet.
+	CONNACKTimeout:  10,
+	// PINGRESPTimeout is timeout in seconds for the Client
+	// to wait for receiving the PINGRESP Packet after sending
+	// the PINGREQ Packet.
+	PINGRESPTimeout: 10,
+	// ClientID is the Client Identifier of the CONNECT Packet.
+	ClientID:        []byte("clientID"),
+	// UserName is the User Name of the CONNECT Packet.
+	UserName:        []byte("userName"),
+	// // Password is the Password of the CONNECT Packet.
+	Password:        []byte("password"),
+	// CleanSession is the Clean Session of the CONNECT Packet.
+	CleanSession:    true,
+	// KeepAlive is the Keep Alive of the CONNECT Packet.
+	KeepAlive:       30,
+	// WillTopic is the Will Topic of the CONNECT Packet.
+	WillTopic:       []byte("willTopic"),
+	// WillMessage is the Will Message of the CONNECT Packet.
+	WillMessage:     []byte("willMessage"),
+	// WillQoS is the Will QoS of the CONNECT Packet.
+	WillQoS:         mqtt.QoS0,
+	// WillRetain is the Will Retain of the CONNECT Packet.
+	WillRetain:      true,
+})
+if err != nil {
+	panic(err)
+}
+```
 
 ## MQTT Client Command Line Application
 
