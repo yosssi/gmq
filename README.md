@@ -169,6 +169,50 @@ if err != nil {
 }
 ```
 
+#### CONNECT using TLS
+
+```go
+// Create an MQTT Client.
+cli := client.New(&client.Options{
+	ErrorHandler: func(err error) {
+		fmt.Println(err)
+	},
+})
+
+// Terminate the Client.
+defer cli.Terminate()
+
+// Read the certificate file.
+b, err := ioutil.ReadFile("/path/to/crtFile")
+if err != nil {
+	return nil, err
+}
+
+roots := x509.NewCertPool()
+if ok := roots.AppendCertsFromPEM(b); !ok {
+	return nil, errParseCrtFailure
+}
+
+tlsConfig = &tls.Config{
+	RootCAs: roots,
+}
+
+// Connect to the MQTT Server using TLS.
+err := cli.Connect(&client.ConnectOptions{
+	// Network is the network on which the Client connects to.
+	Network:         "tcp",
+	// Address is the address which the Client connects to.
+	Address:         "iot.eclipse.org:1883",
+	// TLSConfig is the configuration for the TLS connection.
+	// If this property is not nil, the Client tries to use TLS
+	// for the connection.
+	TLSConfig:       tlsConfig,
+})
+if err != nil {
+	panic(err)
+}
+```
+
 #### SUBSCRIBE - Subscribe to topics
 
 ```go
