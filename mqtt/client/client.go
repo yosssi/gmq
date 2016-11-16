@@ -966,7 +966,7 @@ func (cli *Client) sendPackets(keepAlive time.Duration, pingrespTimeout time.Dur
 
 			// Create a channel which handles the signal to notify the arrival of
 			// the PINGRESP Packet.
-			pingresp := make(chan struct{})
+			pingresp := make(chan struct{}, 1)
 
 			// Append the channel to pingrespcs.
 			cli.conn.pingresps = append(cli.conn.pingresps, pingresp)
