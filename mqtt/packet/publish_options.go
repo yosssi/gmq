@@ -17,9 +17,9 @@ const (
 // Error values
 var (
 	ErrInvalidQoS                    = errors.New("the QoS is invalid")
-	ErrTopicNameExceedsMaxStringsLen = errors.New("the length of the Topic Name exceeds the maximum strings legnth")
+	ErrTopicNameExceedsMaxStringsLen = errors.New("the length of the Topic Name exceeds the maximum strings length")
 	ErrTopicNameContainsWildcards    = errors.New("the Topic Name contains wildcard characters")
-	ErrMessageExceedsMaxStringsLen   = errors.New("the length of the Message exceeds the maximum strings legnth")
+	ErrMessageExceedsMaxStringsLen   = errors.New("the length of the Message exceeds the maximum strings length")
 )
 
 // PUBLISHOptions represents options for a PUBLISH Packet.
